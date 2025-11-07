@@ -1,15 +1,43 @@
+# Archivos de configuración de IDE (Android Studio / IntelliJ)
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
+*.prod
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/other.xml
+.idea/runConfigurations.xml
+.idea/studiobot.xml
+.idea/migration.xml
+# Excluir TODO .idea, excepto los archivos que sí quieres compartir
+# (como inspectionProfiles, que sí subiste y está bien)
+.idea/*
+!.idea/inspectionProfiles/
+!*.idea/inspectionProfiles/Project_Default.xml
+!.idea/kotlinc.xml
+!.idea/vcs.xml
+
+# Archivos compilados y builds
 /build
-/captures
-.externalNativeBuild
-.cxx
+/app/build
+/captures/
+
+# Archivos locales de Gradle
+.gradle/
 local.properties
+
+# Log de errores de Android Studio
+*~
+*.log
+
+# Archivos de emulador
+.cxx/
+*.apk
+*.aab
+
+# Imágenes y assets que no son del proyecto
+logo_iaeav-playstore.png
