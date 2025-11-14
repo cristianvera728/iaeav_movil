@@ -2,6 +2,7 @@ package es.ua.iuii.iaeav.data.repo
 
 import es.ua.iuii.iaeav.core.storage.SecurePrefs
 import es.ua.iuii.iaeav.data.api.AuthApi
+import es.ua.iuii.iaeav.data.model.GoogleLoginReq
 import es.ua.iuii.iaeav.data.model.LoginReq
 
 class AuthRepository(
@@ -15,5 +16,10 @@ class AuthRepository(
 
     suspend fun register(username: String, pass: String) {
         api.register(LoginReq(username, pass))
+    }
+
+    suspend fun googleLogin(idToken: String) {
+        val res = api.googleLogin(GoogleLoginReq(idToken))
+        sp.saveJwt(res.jwt())
     }
 }

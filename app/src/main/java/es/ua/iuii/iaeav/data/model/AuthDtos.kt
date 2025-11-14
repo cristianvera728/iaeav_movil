@@ -1,6 +1,7 @@
 package es.ua.iuii.iaeav.data.model
 
 import com.squareup.moshi.Json
+import kotlinx.serialization.SerialName
 
 data class LoginReq(
     val username: String,
@@ -17,3 +18,8 @@ data class LoginRes(
         accessToken ?: token
         ?: throw IllegalStateException("Respuesta sin token válido")
 }
+data class GoogleLoginReq(
+    // 👇 2. AÑADE ESTA ANOTACIÓN
+    @field:Json(name = "id_token")
+    val idToken: String
+)

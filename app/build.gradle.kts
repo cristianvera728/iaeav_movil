@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -72,6 +73,8 @@ dependencies {
     implementation(libs.moshi.kotlin)
     implementation(libs.security.crypto)
     implementation(libs.work.runtime.ktx)
+
+    implementation(libs.play.services.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

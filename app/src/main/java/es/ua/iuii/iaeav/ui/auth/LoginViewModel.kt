@@ -21,6 +21,19 @@ class LoginViewModel : ViewModel() {
             loading.value = false
         }
     }
+
+    // --- AÑADIR ESTA FUNCIÓN ---
+    fun googleLogin(idToken: String, onSuccess: () -> Unit) {
+        loading.value = true
+        viewModelScope.launch {
+            runCatching { repo.googleLogin(idToken) }
+                .onSuccess { onSuccess() }
+                .onFailure { error.value = it.message ?: "Error de Google Login" }
+            loading.value = false
+        }
+    }
+    // ---------------------------
+
     companion object {
         val Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
