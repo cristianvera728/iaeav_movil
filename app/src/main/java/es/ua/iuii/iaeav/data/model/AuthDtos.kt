@@ -23,3 +23,18 @@ data class GoogleLoginReq(
     @field:Json(name = "id_token")
     val idToken: String
 )
+
+// DTO para recibir los datos del usuario (GET /users/me)
+data class UserDto(
+    val id: Int,
+    val email: String,
+    val username: String?, // <-- CAMBIADO de 'name' a 'username'
+    val role: String
+    // 'is_active' eliminado porque el servidor no lo envía
+)
+
+// DTO para cambiar la contraseña
+data class ChangePasswordRequest(
+    val current_password: String,
+    val new_password: String
+)

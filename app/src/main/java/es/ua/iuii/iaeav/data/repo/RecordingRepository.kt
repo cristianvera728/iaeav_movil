@@ -19,7 +19,7 @@ import java.security.SecureRandom
 class NonRetryableUploadException(message: String) : Exception(message)
 
 class RecordingRepository(
-    private val recordingsApi: RecordingsApi,
+    private val api: RecordingsApi,
     private val cryptoApi: CryptoApi
 ) {
     private val rng = SecureRandom()
@@ -62,7 +62,7 @@ class RecordingRepository(
             .joinToString("") { "%02x".format(it) }
 
         // 3) INIT
-        val initRes = recordingsApi.init(
+        val initRes = api.init(
             InitReq(
                 pseudonym = pseudonym,
                 taskId = taskId,
@@ -90,7 +90,7 @@ class RecordingRepository(
                 body = body
             )
 
-            recordingsApi.chunk(
+            api.chunk(
                 uploadId = uploadId,
                 auth = "Bearer $uploadToken",
                 offset = offset,
@@ -104,7 +104,7 @@ class RecordingRepository(
         // 5) COMPLETE (envolver DEK con RSA-OAEP-256)
         val wrapped = Rsa.wrapAesKey(dek, pub)
         try {
-            return recordingsApi.complete(
+            return api.complete(
                 uploadId = uploadId,
                 auth = "Bearer $uploadToken",
                 body = CompleteReq(
@@ -127,6 +127,19 @@ class RecordingRepository(
                 throw NonRetryableUploadException("Client error ${e.code()}")
             }
             throw e
+        }
+    }
+    // --- AÑADIR ESTA NUEVA FUNCIÓN ---
+    suspend fun getMyRecordings(): Result<List<RecordingDto>> {
+        return try {
+            // 1. Llama a la API, que devuelve el objeto completo
+            val response = api.getMyRecordings()
+
+            // 2. Extrae solo la lista de grabaciones de ese objeto
+            Result.success(response.recordings)
+        } catch (e: Exception) {
+            // Captura cualquier error de red o parsing
+            Result.failure(e)
         }
     }
 }

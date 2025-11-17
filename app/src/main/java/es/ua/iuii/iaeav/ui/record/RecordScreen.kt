@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-// --- Importaciones añadidas ---
+// --- Importaciones que ya tenías ---
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -29,20 +29,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.work.WorkInfo
 import es.ua.iuii.iaeav.workers.UploadWorker
 import java.util.Locale
-// ------------------------------
+
+// --- Importaciones NUEVAS para el menú ---
+import androidx.compose.material.icons.filled.MoreVert
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecordScreen(contentPadding: PaddingValues) {
+fun RecordScreen(
+    // --- Firma de la función MODIFICADA ---
+    // Ya no recibe 'contentPadding', ahora recibe las acciones de navegación
+    onLogout: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToMyRecordings: () -> Unit,
+    onNavigateToInfo: () -> Unit // Añadido para el botón de "Info"
+) {
     val context = LocalContext.current
     val vm: RecordViewModel = viewModel(factory = RecordViewModel.Factory(context))
 
     var isRecording by remember { mutableStateOf(false) }
-
-    // --- ¡NUEVO! Observamos el WorkInfo del ViewModel ---
     val workInfo by vm.workInfo.collectAsState()
 
-    // --- El texto de estado ahora depende de 'isRecording' y 'workInfo' ---
+    // --- Estado para el menú desplegable ---
+    var showMenu by remember { mutableStateOf(false) }
+
+    // --- Tu lógica de 'status' (sin cambios) ---
     val status = remember(isRecording, workInfo) {
         when {
             isRecording -> "Grabando..."
@@ -52,12 +62,10 @@ fun RecordScreen(contentPadding: PaddingValues) {
                 WorkInfo.State.RUNNING -> "Subiendo..."
                 WorkInfo.State.BLOCKED -> "Esperando red..."
                 WorkInfo.State.SUCCEEDED -> {
-                    // Leemos los datos de éxito
                     val snr = workInfo!!.outputData.getDouble(UploadWorker.KEY_OUTPUT_SNR, 0.0)
                     String.format(Locale.US, "Grabación Aceptada (SNR: %.1f dB)", snr)
                 }
                 WorkInfo.State.FAILED -> {
-                    // Leemos el error
                     val reason = workInfo!!.outputData.getString(UploadWorker.KEY_OUTPUT_ERROR) ?: "Fallo"
                     if ("low_snr" in reason) "Rechazada: SNR muy bajo" else "Rechazada: $reason"
                 }
@@ -65,16 +73,14 @@ fun RecordScreen(contentPadding: PaddingValues) {
             }
         }
     }
-    // -----------------------------------------------------------------
 
+    // --- Tu lógica de permisos (sin cambios) ---
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
             vm.startRecording()
             isRecording = true
-        } else {
-            // El estado se actualizará solo porque 'isRecording' no cambió
         }
     }
 
@@ -90,16 +96,61 @@ fun RecordScreen(contentPadding: PaddingValues) {
         }
     }
 
+    // --- Scaffold MODIFICADO con el TopAppBar y el Menú ---
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Nueva Grabación") })
+            TopAppBar(
+                title = { Text("Grabación Segura") }, // Título actualizado
+                actions = {
+                    // Icono de menú (tres puntos)
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menú")
+                    }
+
+                    // Menú desplegable
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Mi Cuenta") },
+                            onClick = {
+                                showMenu = false
+                                onNavigateToProfile() // Llama a la navegación
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Mis Grabaciones") },
+                            onClick = {
+                                showMenu = false
+                                onNavigateToMyRecordings() // Llama a la navegación
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Información de la App") },
+                            onClick = {
+                                showMenu = false
+                                onNavigateToInfo() // Llama a la navegación
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Cerrar Sesión") },
+                            onClick = {
+                                showMenu = false
+                                onLogout() // Llama al logout
+                            }
+                        )
+                    }
+                }
+            )
         }
-    ) { innerPadding ->
+    ) { innerPadding -> // Este 'innerPadding' es el que SÍ se usa
+        // --- TODO TU CONTENIDO de la columna, ahora usa el 'innerPadding' del nuevo Scaffold ---
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(innerPadding) // <-- Se aplica el padding del Scaffold
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp), // <-- Tu padding adicional
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceAround
         ) {
@@ -116,7 +167,6 @@ fun RecordScreen(contentPadding: PaddingValues) {
                     } else {
                         vm.stopAndEnqueueUpload()
                         isRecording = false
-                        // Ya no ponemos "Subida encolada" aquí, el 'workInfo' se encargará
                     }
                 },
                 containerColor = if (isRecording) MaterialTheme.colorScheme.errorContainer
@@ -130,7 +180,6 @@ fun RecordScreen(contentPadding: PaddingValues) {
                 )
             }
 
-            // --- La Card ahora muestra el estado dinámico ---
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

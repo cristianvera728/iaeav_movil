@@ -4,6 +4,9 @@ import es.ua.iuii.iaeav.data.model.CompleteReq
 import es.ua.iuii.iaeav.data.model.CompleteRes
 import es.ua.iuii.iaeav.data.model.InitReq
 import es.ua.iuii.iaeav.data.model.InitRes
+import es.ua.iuii.iaeav.data.model.RecordingDto
+import es.ua.iuii.iaeav.data.model.RecordingsResponse
+import es.ua.iuii.iaeav.data.model.UploadTokenResponse
 import okhttp3.MultipartBody
 import retrofit2.http.*
 
@@ -27,4 +30,9 @@ interface RecordingsApi {
         @Header("Authorization") auth: String,
         @Body body: CompleteReq
     ): CompleteRes
+
+    // --- AÑADIR ESTE NUEVO ENDPOINT ---
+    @GET("recordings")
+    suspend fun getMyRecordings(): RecordingsResponse
+
 }

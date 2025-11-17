@@ -41,3 +41,39 @@ data class CompleteRes(
     val snr: Double,
     @Json(name = "recording_id") val recordingId: String?
 )
+
+data class UploadTokenResponse(
+    val upload_token: String,
+    val upload_url: String
+)
+
+data class UploadResult(
+    val id: String,
+    val snr: Double,
+    val status: String
+)
+
+// --- AÑADIR ESTA NUEVA DATA CLASS ---
+data class RecordingDto(
+    val id: String,
+    val created_at: String, // Recibiremos la fecha como un String (ISO 8601)
+    val snr: Double?, // Puede ser nulo si está pendiente
+    val status: String, // Ej: "ACCEPTED", "REJECTED_SNR"
+    val filename: String? // Nombre del fichero original
+)
+
+// DTO para el objeto "pagination" que viene en la respuesta
+data class PaginationDto(
+    val page: Int,
+    val pages: Int,
+    val per_page: Int,
+    val total: Int,
+    val has_next: Boolean,
+    val has_prev: Boolean
+)
+
+// DTO para la respuesta completa de /recordings
+data class RecordingsResponse(
+    val recordings: List<RecordingDto>,
+    val pagination: PaginationDto
+)
