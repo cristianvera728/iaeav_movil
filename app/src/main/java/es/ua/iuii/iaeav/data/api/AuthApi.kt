@@ -9,7 +9,8 @@ import retrofit2.http.PUT
 
 interface AuthApi {
     @POST("auth/login") suspend fun login(@Body body: LoginReq): LoginRes
-    @POST("auth/register") suspend fun register(@Body body: LoginReq): Unit
+    @POST("/api/v1/auth/register") // Ajusta la URL si es necesario
+    suspend fun register(@Body req: RegisterReq)
     @POST("auth/google/token") // <-- AÑADIR (o la ruta que use tu backend)
     suspend fun googleLogin(@Body body: GoogleLoginReq): LoginRes
     // --- NUEVOS ENDPOINTS ---

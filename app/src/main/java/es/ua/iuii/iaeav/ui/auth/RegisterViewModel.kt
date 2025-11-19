@@ -13,10 +13,12 @@ class RegisterViewModel : ViewModel() {
     val error = MutableStateFlow<String?>(null)
     val done = MutableStateFlow(false)
 
-    fun submit(username: String, pass: String) {
+    // Función submit actualizada para recibir 'email'
+    fun submit(username: String, email: String, pass: String) {
         loading.value = true
         viewModelScope.launch {
-            runCatching { repo.register(username, pass) }
+            // Se pasa el email al repositorio
+            runCatching { repo.register(username, email, pass) }
                 .onSuccess { done.value = true }
                 .onFailure { error.value = it.message ?: "Error" }
             loading.value = false

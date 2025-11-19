@@ -12,10 +12,13 @@ class LoginViewModel : ViewModel() {
     val loading = MutableStateFlow(false)
     val error = MutableStateFlow<String?>(null)
 
-    fun submit(username: String, pass: String, onSuccess: () -> Unit) {
+    // FUNCIÓN CORREGIDA: Cambiamos 'username' por 'loginIdentifier'
+    fun submit(loginIdentifier: String, pass: String, onSuccess: () -> Unit) {
         loading.value = true
         viewModelScope.launch {
-            runCatching { repo.login(username, pass) }
+            // Asegúrate de que tu AuthRepository.kt también ha sido actualizado
+            // para usar el nuevo nombre de campo en el DTO LoginReq.
+            runCatching { repo.login(loginIdentifier, pass) }
                 .onSuccess { onSuccess() }
                 .onFailure { error.value = it.message ?: "Error" }
             loading.value = false

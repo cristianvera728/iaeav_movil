@@ -10,7 +10,6 @@ import es.ua.iuii.iaeav.ui.auth.RegisterScreen
 import es.ua.iuii.iaeav.ui.info.InfoScreen // <-- Importar InfoScreen
 import es.ua.iuii.iaeav.ui.profile.ProfileScreen
 import es.ua.iuii.iaeav.ui.record.RecordScreen
-import es.ua.iuii.iaeav.ui.recordings.MyRecordingsScreen
 
 object Routes {
     const val Login = "login"
@@ -59,15 +58,6 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
             )
         }
 
-        // --- COMPOSABLES PARA LAS NUEVAS PANTALLAS ---
-
-        // Eliminado el placeholder duplicado de Profile
-
-        composable(Routes.MyRecordings) {
-            MyRecordingsScreen(
-                onBack = { nav.popBackStack() }
-            )
-        }
 
         composable(Routes.Info) {
             // --- CAMBIO: Usar la pantalla real ---

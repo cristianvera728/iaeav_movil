@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Email //
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -28,6 +29,7 @@ import es.ua.iuii.iaeav.R
 fun RegisterScreen(contentPadding: PaddingValues, onRegistered: () -> Unit) {
     val vm: RegisterViewModel = viewModel(factory = RegisterViewModel.Factory)
     var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     val loading by vm.loading.collectAsState()
     val err by vm.error.collectAsState()
@@ -57,7 +59,7 @@ fun RegisterScreen(contentPadding: PaddingValues, onRegistered: () -> Unit) {
         Text("Crear cuenta", style = MaterialTheme.typography.headlineMedium) // Título más grande
         Spacer(Modifier.height(24.dp))
 
-        // 2. Campos de texto mejorados (igual que Login)
+        // Campo: Usuario
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
@@ -69,6 +71,22 @@ fun RegisterScreen(contentPadding: PaddingValues, onRegistered: () -> Unit) {
             }
         )
         Spacer(Modifier.height(8.dp))
+
+        // Campo: Correo Electrónico (NUEVO)
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Correo Electrónico") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = {
+                Icon(Icons.Default.Email, contentDescription = "Icono de correo")
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email) // Optimización para email
+        )
+        Spacer(Modifier.height(8.dp))
+
+        // Campo: Contraseña
         OutlinedTextField(
             value = pass,
             onValueChange = { pass = it },
@@ -83,10 +101,10 @@ fun RegisterScreen(contentPadding: PaddingValues, onRegistered: () -> Unit) {
         )
         Spacer(Modifier.height(20.dp))
 
-        // 3. Botón mejorado (igual que Login)
+        // Botón
         Button(
             enabled = !loading,
-            onClick = { vm.submit(username, pass) },
+            onClick = { vm.submit(username, email, pass) }, // <-- EMAIL INCLUIDO EN LA LLAMADA
             modifier = Modifier.fillMaxWidth() // Ocupa todo el ancho
         ) {
             Text(if (loading) "Creando..." else "Registrar")

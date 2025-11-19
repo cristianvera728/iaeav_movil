@@ -40,7 +40,7 @@ private const val WEB_CLIENT_ID = "935818959464-v44nfgs5vs5o4ivr1bcct7t75frk1vio
 @Composable
 fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegister: () -> Unit) {
     val vm: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
-    var username by remember { mutableStateOf("") }
+    var loginIdentifier by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     val loading by vm.loading.collectAsState()
     val err by vm.error.collectAsState()
@@ -99,8 +99,8 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
 
         // --- Login con Usuario/Contraseña ---
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
+            value = loginIdentifier,
+            onValueChange = { loginIdentifier = it },
             label = { Text("Usuario") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -125,7 +125,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
 
         Button(
             enabled = !loading,
-            onClick = { vm.submit(username, pass, onLogged) },
+            onClick = { vm.submit(loginIdentifier, pass, onLogged) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (loading) "Entrando..." else "Entrar")

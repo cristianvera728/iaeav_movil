@@ -4,7 +4,15 @@ import com.squareup.moshi.Json
 import kotlinx.serialization.SerialName
 
 data class LoginReq(
+    // CAMBIO CLAVE: Usa 'login_identifier' en el JSON.
+    @Json(name = "login_identifier") val loginIdentifier: String,
+    val password: String
+)
+
+// DTO para la petición de registro (incluye email)
+data class RegisterReq(
     val username: String,
+    val email: String,
     val password: String
 )
 
