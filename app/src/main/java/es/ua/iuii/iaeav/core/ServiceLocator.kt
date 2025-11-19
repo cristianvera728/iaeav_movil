@@ -18,26 +18,60 @@ import es.ua.iuii.iaeav.data.repo.AuthRepository
 import es.ua.iuii.iaeav.data.repo.RecordingRepository
 import java.util.concurrent.TimeUnit
 
+/**
+ * # Service Locator para la Aplicación
+ *
+ * Objeto singleton central responsable de la inicialización y provisión de
+ * todas las dependencias principales (APIs y Repositorios) de la aplicación.
+ * Sigue el patrón Service Locator.
+ *
+ * **NOTA:** Debe ser inicializado una única vez mediante [init]
+ * al arrancar la [android.app.Application].
+ */
 object ServiceLocator {
-    // Base del backend (con barra final)
+
+    /** URL base del backend para las peticiones de API (ej. https://iaeav.iuii.ua.es/api/v1/) */
     private const val BASE_URL = "https://iaeav.iuii.ua.es/api/v1/"
 
+    /** Bandera para asegurar que la inicialización se realiza solo una vez. */
     @Volatile private var initialized = false
 
-    // Expuestos
+    // --- Componentes Expuestos (Acceso de Solo Lectura) ---
+
+    /** Almacenamiento seguro y cifrado para tokens y datos sensibles. */
     lateinit var securePrefs: SecurePrefs; private set
+
+    /** Instancia de Retrofit, la base para crear todas las interfaces de API. */
     lateinit var retrofit: Retrofit; private set
+
+    // --- Interfaces de API ---
+
+    /** Interfaz de Retrofit para gestionar la Autenticación y el Perfil. */
     lateinit var authApi: AuthApi; private set
+
+    /** Interfaz de Retrofit para obtener la clave pública de cifrado del servidor. */
     lateinit var cryptoApi: CryptoApi; private set
+
+    /** Interfaz de Retrofit para la subida de grabaciones. */
     lateinit var recordingsApi: RecordingsApi; private set
 
+    // --- Repositorios (Lógica de Negocio) ---
+
+    /** Repositorio principal para las operaciones de autenticación (login, registro, perfil). */
     lateinit var authRepository: AuthRepository; private set
+
+    /** Repositorio que orquesta el flujo completo de grabación, cifrado y subida de archivos. */
     lateinit var recordingRepository: RecordingRepository; private set
 
+    /**
+     * Inicializa todos los componentes y dependencias de la aplicación.
+     *
+     * @param appContext El Context de la aplicación, usado para crear el almacenamiento seguro.
+     */
     fun init(appContext: Context) {
         if (initialized) return
 
-        // SharedPreferences cifrados
+        // 1. Configuración de SecurePrefs (SharedPreferences Cifrados)
         val master = MasterKey.Builder(appContext)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
@@ -49,17 +83,20 @@ object ServiceLocator {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+        // Se crea el wrapper de SecurePrefs para facilitar el acceso a los datos
         securePrefs = SecurePrefs(esp)
 
 
+        // 2. Interceptor de Autorización (Añade el JWT automáticamente)
         val authInterceptor = Interceptor { chain ->
             val original = chain.request()
 
-            // Si la petición YA trae Authorization (ej. upload_token), no añadir otra
+            // Evitar reescribir tokens específicos (ej. los usados en la subida chunked)
             if (original.header("Authorization") != null) {
                 return@Interceptor chain.proceed(original)
             }
 
+            // Añadir el token JWT de la sesión si existe
             val userToken = securePrefs.getJwt()
             val req = if (!userToken.isNullOrBlank()) {
                 original.newBuilder()
@@ -72,34 +109,38 @@ object ServiceLocator {
         }
 
 
-        // Logging (BODY en debug; si quieres, baja a BASIC en prod)
+        // 3. Interceptor de Logging (Solo en desarrollo/debug)
         val logger = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BODY // Muestra el cuerpo completo de las peticiones/respuestas
         }
 
+        // 4. Cliente OkHttp
         val okHttp = OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
-            .addInterceptor(logger)
-            // (Opcional) timeouts razonables para subidas
+            .addInterceptor(authInterceptor) // Aplicamos el JWT a todas las peticiones
+            .addInterceptor(logger) // Registro de logs para debug
             .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS) // Tiempo de espera para la lectura (ej. respuesta grande)
+            .writeTimeout(60, TimeUnit.SECONDS) // Tiempo de espera para la escritura (ej. subida de archivo)
             .build()
 
+        // 5. Configuración de Moshi (Serialización JSON)
         val moshi = Moshi.Builder()
-            .add(KotlinJsonAdapterFactory()) // soporte data classes de Kotlin
+            .add(KotlinJsonAdapterFactory()) // Habilita el soporte para las data classes de Kotlin
             .build()
 
+        // 6. Instancia de Retrofit
         retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttp)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
 
+        // 7. Creación de APIs
         authApi = retrofit.create(AuthApi::class.java)
         cryptoApi = retrofit.create(CryptoApi::class.java)
         recordingsApi = retrofit.create(RecordingsApi::class.java)
 
+        // 8. Creación de Repositorios (Inyección de dependencias)
         authRepository = AuthRepository(authApi, securePrefs)
         recordingRepository = RecordingRepository(recordingsApi, cryptoApi)
 

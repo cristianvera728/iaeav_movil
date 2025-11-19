@@ -33,24 +33,45 @@ import java.util.Locale
 // --- Importaciones NUEVAS para el menú ---
 import androidx.compose.material.icons.filled.MoreVert
 
+/**
+ * # Pantalla de Grabación (RecordScreen)
+ *
+ * Composable principal de la aplicación. Gestiona la interfaz de usuario para
+ * iniciar y detener la grabación de audio, la solicitud de permisos de micrófono,
+ * y la visualización del estado de la subida asíncrona mediante [WorkManager].
+ *
+ * @param onLogout Callback para navegar a la pantalla de Login y cerrar la sesión.
+ * @param onNavigateToProfile Callback para navegar a la pantalla de perfil.
+ * @param onNavigateToInfo Callback para navegar a la pantalla de información.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordScreen(
-    // --- Firma de la función MODIFICADA ---
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToInfo: () -> Unit
 ) {
     val context = LocalContext.current
+    // Inicialización del ViewModel que orquesta la grabación y la subida
     val vm: RecordViewModel = viewModel(factory = RecordViewModel.Factory(context))
 
+    // --- Estados Locales y de ViewModel ---
+
+    /** Estado local que refleja si el grabador está actualmente activo. */
     var isRecording by remember { mutableStateOf(false) }
+
+    /** Estado reactivo del [WorkInfo] para la tarea de subida, observado desde el ViewModel. */
     val workInfo by vm.workInfo.collectAsState()
 
-    // --- Estado para el menú desplegable ---
+    /** Estado local para controlar la visibilidad del menú desplegable (tres puntos). */
     var showMenu by remember { mutableStateOf(false) }
 
-    // --- Tu lógica de 'status' (sin cambios) ---
+    // --- Lógica de Estado de la UI ---
+
+    /**
+     * Variable calculada que proporciona un mensaje descriptivo para el usuario
+     * basado en el estado de grabación local y el estado del worker de subida.
+     */
     val status = remember(isRecording, workInfo) {
         when {
             isRecording -> "Grabando..."
@@ -60,10 +81,12 @@ fun RecordScreen(
                 WorkInfo.State.RUNNING -> "Subiendo..."
                 WorkInfo.State.BLOCKED -> "Esperando red..."
                 WorkInfo.State.SUCCEEDED -> {
+                    // Muestra el SNR (Relación Señal/Ruido) si la subida fue exitosa
                     val snr = workInfo!!.outputData.getDouble(UploadWorker.KEY_OUTPUT_SNR, 0.0)
                     String.format(Locale.US, "Grabación Aceptada (SNR: %.1f dB)", snr)
                 }
                 WorkInfo.State.FAILED -> {
+                    // Muestra el motivo del fallo, incluyendo rechazo por SNR bajo
                     val reason = workInfo!!.outputData.getString(UploadWorker.KEY_OUTPUT_ERROR) ?: "Fallo"
                     if ("low_snr" in reason) "Rechazada: SNR muy bajo" else "Rechazada: $reason"
                 }
@@ -72,7 +95,9 @@ fun RecordScreen(
         }
     }
 
-    // --- Tu lógica de permisos (sin cambios) ---
+    // --- Lógica de Permisos ---
+
+    /** Lanzador de actividad para solicitar el permiso RECORD_AUDIO. */
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -82,6 +107,10 @@ fun RecordScreen(
         }
     }
 
+    /**
+     * Comprueba el permiso del micrófono y lo solicita si no está concedido.
+     * Si el permiso está OK, inicia la grabación.
+     */
     fun startOrAskPermission() {
         val granted = ContextCompat.checkSelfPermission(
             context, Manifest.permission.RECORD_AUDIO
@@ -94,54 +123,54 @@ fun RecordScreen(
         }
     }
 
-    // --- Scaffold MODIFICADO con el TopAppBar y el Menú ---
+    // --- Interfaz de Usuario (UI) ---
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Grabación Segura") }, // Título actualizado
+                title = { Text("Grabación Segura") },
                 actions = {
-                    // Icono de menú (tres puntos)
+                    // Icono de menú (tres puntos) que controla la visibilidad de [DropdownMenu]
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menú")
                     }
 
-                    // Menú desplegable
+                    // Menú desplegable con opciones de navegación y sesión
                     DropdownMenu(
                         expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
+                        onDismissRequest = { showMenu = false } // Se cierra al tocar fuera
                     ) {
                         DropdownMenuItem(
                             text = { Text("Mi Cuenta") },
                             onClick = {
                                 showMenu = false
-                                onNavigateToProfile() // Llama a la navegación
+                                onNavigateToProfile() // Navegación al perfil
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Información de la App") },
                             onClick = {
                                 showMenu = false
-                                onNavigateToInfo() // Llama a la navegación
+                                onNavigateToInfo() // Navegación a información
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Cerrar Sesión") },
                             onClick = {
                                 showMenu = false
-                                onLogout() // Llama al logout
+                                onLogout() // Cierre de sesión y navegación al login
                             }
                         )
                     }
                 }
             )
         }
-    ) { innerPadding -> // Este 'innerPadding' es el que SÍ se usa
-        // --- TODO TU CONTENIDO de la columna, ahora usa el 'innerPadding' del nuevo Scaffold ---
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding) // <-- Se aplica el padding del Scaffold
+                .padding(innerPadding) // Aplica el relleno de la barra superior
                 .fillMaxSize()
-                .padding(16.dp), // <-- Tu padding adicional
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceAround
         ) {
@@ -151,15 +180,17 @@ fun RecordScreen(
                 textAlign = TextAlign.Center
             )
 
+            // Botón Flotante Grande (FAB) de Iniciar/Detener Grabación
             LargeFloatingActionButton(
                 onClick = {
                     if (!isRecording) {
                         startOrAskPermission()
                     } else {
-                        vm.stopAndEnqueueUpload()
+                        vm.stopAndEnqueueUpload() // Detiene y pone la subida en cola
                         isRecording = false
                     }
                 },
+                // Cambia de color basado en el estado de grabación
                 containerColor = if (isRecording) MaterialTheme.colorScheme.errorContainer
                 else MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(120.dp)
@@ -171,6 +202,7 @@ fun RecordScreen(
                 )
             }
 
+            // Tarjeta de Estado (Muestra el status)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

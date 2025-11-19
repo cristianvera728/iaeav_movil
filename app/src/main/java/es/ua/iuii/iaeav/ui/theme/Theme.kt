@@ -10,14 +10,20 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-// 1. Usa los nuevos colores del logo para el TEMA OSCURO
+/**
+ * Esquema de colores para el tema oscuro.
+ * Utiliza los colores definidos en [Color.kt] (PrimaryBlueLight, SecondaryBlueLight, TertiaryAquaLight).
+ */
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryBlueLight,
     secondary = SecondaryBlueLight,
     tertiary = TertiaryAquaLight
 )
 
-// 2. Usa los nuevos colores del logo para el TEMA CLARO
+/**
+ * Esquema de colores para el tema claro.
+ * Utiliza los colores definidos en [Color.kt] (PrimaryBlue, SecondaryBlue, TertiaryAqua).
+ */
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryBlue,
     secondary = SecondaryBlue,
@@ -34,27 +40,38 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+/**
+ * # Composable Principal del Tema (IAEAVTheme)
+ *
+ * Aplica el tema de diseño de Material 3 a toda la jerarquía de Composable.
+ *
+ * @param darkTheme Indica si el tema oscuro debe estar activo (por defecto, sigue la configuración del sistema).
+ * @param dynamicColor Si es 'true' (y el dispositivo lo soporta - Android 12+), utiliza colores derivados del fondo de pantalla.
+ * @param content El contenido de la aplicación al que se aplicará el tema.
+ */
 @Composable
 fun IAEAVTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // El color dinámico (Android 12+) usará los colores del wallpaper.
-    // Ponlo en 'false' si quieres FORZAR siempre tus colores azules.
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        // 1. Prioridad: Color Dinámico (si está activado y el SO es compatible)
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
+        // 2. Si no hay color dinámico, usa el esquema manual de tema oscuro
         darkTheme -> DarkColorScheme
+
+        // 3. Por defecto, usa el esquema manual de tema claro
         else -> LightColorScheme
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // 'Typography' viene de tu archivo Type.kt
+        typography = Typography, // 'Typography' viene del archivo Type.kt
         content = content
     )
 }

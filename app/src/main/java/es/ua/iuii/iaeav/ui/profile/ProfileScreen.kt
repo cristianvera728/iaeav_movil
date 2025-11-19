@@ -13,35 +13,44 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+/**
+ * # Pantalla de Perfil de Usuario (ProfileScreen)
+ *
+ * Composable que muestra la información del usuario actual y proporciona la interfaz
+ * para cambiar la contraseña. La sección de cambio de contraseña se oculta
+ * para usuarios que se autenticaron con Google.
+ *
+ * @param onBack Callback de navegación para volver a la pantalla anterior.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    // Inicialización del ViewModel con el Factory que inyecta dependencias
     val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(context))
 
+    // Colección de estados reactivos desde el ViewModel
     val user by vm.user.collectAsState()
     val isLoading by vm.isLoading.collectAsState()
     val message by vm.message.collectAsState()
 
-    // 💡 CAMBIO CLAVE: Recoger el nuevo estado de control de acceso
+    // Control de acceso para la visibilidad del formulario de contraseña
     val canChangePassword by vm.canChangePassword.collectAsState()
 
-    // Estados locales para el formulario
+    // Estados locales para los campos del formulario de contraseña
     var currentPass by remember { mutableStateOf("") }
     var newPass by remember { mutableStateOf("") }
-    // NOTA: Si corregiste el DTO a 3 campos, deberías tener aquí 'confirmPass'
-    // y usarlo en la llamada a vm.changePassword. Mantenemos el código actual
-    // por simplicidad.
+    // Nota: Si el DTO usa 3 campos, se requeriría un tercer estado aquí.
 
-    // Mostrar Snackbar si hay mensajes
+    // Mostrar Snackbar si hay mensajes (éxito o error)
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(message) {
         message?.let {
             snackbarHostState.showSnackbar(it)
             vm.clearMessage()
-            // Limpiar campos si fue éxito
+            // Limpiar campos si el cambio de contraseña fue un éxito
             if (it.contains("correctamente")) {
                 currentPass = ""
                 newPass = ""
@@ -62,6 +71,7 @@ fun ProfileScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
+        // Indicador de carga inicial mientras se obtiene el perfil
         if (isLoading && user == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -109,17 +119,16 @@ fun ProfileScreen(
 
                 Divider()
 
-                // =========================================================
-                // 💡 CAMBIO CLAVE: Renderizado Condicional
-                // =========================================================
+                // --- Lógica de Renderizado Condicional de Cambio de Contraseña ---
                 if (canChangePassword) {
+                    // Muestra el formulario si el usuario es de tipo "local"
                     Text(
                         "Cambiar Contraseña",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(top = 8.dp)
                     )
 
-                    // --- Formulario de Cambio de Contraseña ---
+                    // Campo Contraseña Actual
                     OutlinedTextField(
                         value = currentPass,
                         onValueChange = { currentPass = it },
@@ -129,6 +138,7 @@ fun ProfileScreen(
                         singleLine = true
                     )
 
+                    // Campo Nueva Contraseña
                     OutlinedTextField(
                         value = newPass,
                         onValueChange = { newPass = it },
@@ -138,12 +148,10 @@ fun ProfileScreen(
                         singleLine = true
                     )
 
-                    // Asegúrate de añadir el tercer campo si lo implementaste
-
                     Button(
                         onClick = { vm.changePassword(currentPass, newPass) },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading
+                        enabled = !isLoading // Deshabilitado durante la operación
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -155,7 +163,7 @@ fun ProfileScreen(
                         }
                     }
                 } else {
-                    // Mostrar un mensaje claro en lugar del formulario
+                    // Muestra un mensaje para usuarios de Google
                     Text(
                         "Gestión de Contraseña",
                         style = MaterialTheme.typography.titleMedium,
@@ -167,7 +175,6 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
-                // =========================================================
             }
         }
     }

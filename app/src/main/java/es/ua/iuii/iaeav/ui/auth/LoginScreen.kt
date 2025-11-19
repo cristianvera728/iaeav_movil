@@ -35,13 +35,31 @@ import kotlinx.coroutines.launch
 // REEMPLAZA ESTO CON TU ID DE CLIENTE WEB DE GOOGLE CLOUD
 // (El que es de tipo "Aplicación Web")
 // ----------------------------------------------
+/**
+ * ID de Cliente Web de Google Cloud. Es vital para solicitar el ID Token
+ * necesario para la autenticación OIDC con el backend.
+ */
 private const val WEB_CLIENT_ID = "935818959464-v44nfgs5vs5o4ivr1bcct7t75frk1vio.apps.googleusercontent.com"
 
+/**
+ * Pantalla principal de inicio de sesión.
+ *
+ * Muestra el formulario de credenciales locales y el botón de Google Sign-In.
+ *
+ * @param contentPadding Relleno (padding) aplicado por el Scaffold contenedor.
+ * @param onLogged Callback para navegar una vez que el usuario inicia sesión exitosamente.
+ * @param onGoRegister Callback para navegar a la pantalla de registro.
+ */
 @Composable
 fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegister: () -> Unit) {
+    // Inicialización del ViewModel
     val vm: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
+
+    // Estados del formulario local
     var loginIdentifier by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
+
+    // Estados reactivos del ViewModel
     val loading by vm.loading.collectAsState()
     val err by vm.error.collectAsState()
 
@@ -52,8 +70,9 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
 
     // 1. Configurar el cliente de Google Sign-In
     val googleSignInClient = remember {
+        // Opciones requeridas: solicitar ID Token y el email del usuario
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(WEB_CLIENT_ID) // Solicitar el ID Token
+            .requestIdToken(WEB_CLIENT_ID)
             .requestEmail()
             .build()
         GoogleSignIn.getClient(context, gso)
@@ -64,6 +83,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
+            // El usuario seleccionó la cuenta exitosamente
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             handleGoogleSignInResult(task, vm, onLogged) {
                 // En caso de error en nuestro backend, cerramos sesión en Google
@@ -72,7 +92,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
                 }
             }
         } else {
-            // Error en el flujo de Google (ej. el usuario canceló)
+            // Error o cancelación en la ventana de Google
             vm.error.value = "Inicio con Google cancelado"
         }
     }
@@ -87,6 +107,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        // Logo de la aplicación
         Image(
             painter = painterResource(id = R.drawable.logo_iaeav),
             contentDescription = "Logo de la App",
@@ -123,6 +144,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
         )
         Spacer(Modifier.height(20.dp))
 
+        // Botón principal de Login local
         Button(
             enabled = !loading,
             onClick = { vm.submit(loginIdentifier, pass, onLogged) },
@@ -130,6 +152,8 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
         ) {
             Text(if (loading) "Entrando..." else "Entrar")
         }
+
+        // Botón para ir a registro
         TextButton(
             onClick = onGoRegister,
             modifier = Modifier.fillMaxWidth()
@@ -149,28 +173,28 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
         }
         Spacer(Modifier.height(16.dp))
 
-        // Botón de Google (puedes estilizarlo mejor)
+        // Botón de Google Sign-In
         OutlinedButton(
             onClick = {
                 vm.error.value = null // Limpiar errores anteriores
-                // Lanzar la UI de Google Sign-In
+                // Lanza la actividad que muestra las cuentas de Google
                 googleSignInLauncher.launch(googleSignInClient.signInIntent)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            // 💡 CAMBIO CLAVE: Añadir el icono de Google
+            // Icono de Google
             Image(
                 painter = painterResource(id = R.drawable.google_logo),
                 contentDescription = "Logo de Google",
-                modifier = Modifier.size(20.dp) // Ajusta el tamaño si es necesario
+                modifier = Modifier.size(20.dp)
             )
 
-            // Añadir un espaciador para separar el icono del texto
+            // Separador y texto
             Spacer(Modifier.width(8.dp))
-
             Text("Continuar con Google")
         }
 
+        // Muestra el mensaje de error si existe
         if (err != null) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -182,7 +206,14 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
     }
 }
 
-// 3. Función helper para manejar el resultado
+/**
+ * Función auxiliar para manejar el resultado de la actividad de Google Sign-In.
+ *
+ * @param completedTask Tarea que contiene la cuenta de Google.
+ * @param vm [LoginViewModel] para llamar al login en el backend.
+ * @param onSuccess Callback de navegación en caso de éxito completo.
+ * @param onBackendError Callback para cerrar sesión de Google si la validación del backend falla.
+ */
 private fun handleGoogleSignInResult(
     completedTask: Task<GoogleSignInAccount>,
     vm: LoginViewModel,
@@ -191,17 +222,17 @@ private fun handleGoogleSignInResult(
 ) {
     try {
         val account = completedTask.getResult(ApiException::class.java)
-        val idToken = account.idToken
+        val idToken = account.idToken // El ID Token es lo que se valida contra el backend
 
         if (idToken != null) {
-            // ¡Token obtenido! Enviarlo al ViewModel -> Repositorio -> Backend
+            // El token se obtuvo correctamente, se envía al ViewModel para su validación en el servidor
             vm.googleLogin(idToken, onSuccess)
         } else {
-            // No se pudo obtener el ID Token
+            // Fallo en la obtención del token tras seleccionar la cuenta
             vm.error.value = "No se pudo obtener el token de Google."
         }
     } catch (e: ApiException) {
-        // Error de la API de Google
+        // Fallo en el flujo de Google (ej. problemas de configuración o red)
         Log.w("LoginScreen", "signInResult:failed code=" + e.statusCode)
         vm.error.value = "Error de Google: ${e.statusCode}"
         onBackendError()
