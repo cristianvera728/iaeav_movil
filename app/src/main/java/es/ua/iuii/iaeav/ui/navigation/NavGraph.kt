@@ -1,16 +1,13 @@
 package es.ua.iuii.iaeav.ui.navigation
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import es.ua.iuii.iaeav.ui.auth.LoginScreen
 import es.ua.iuii.iaeav.ui.auth.RegisterScreen
+import es.ua.iuii.iaeav.ui.info.InfoScreen // <-- Importar InfoScreen
 import es.ua.iuii.iaeav.ui.profile.ProfileScreen
 import es.ua.iuii.iaeav.ui.record.RecordScreen
 import es.ua.iuii.iaeav.ui.recordings.MyRecordingsScreen
@@ -62,14 +59,9 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
             )
         }
 
-        // --- COMPOSABLES PARA LAS NUEVAS PANTALLAS (PLACEHOLDERS) ---
+        // --- COMPOSABLES PARA LAS NUEVAS PANTALLAS ---
 
-        composable(Routes.Profile) {
-            // Aquí iría tu ProfileScreen(contentPadding)
-            Column(modifier = Modifier.padding(contentPadding)) {
-                Text("Pantalla de Mi Cuenta / Perfil")
-            }
-        }
+        // Eliminado el placeholder duplicado de Profile
 
         composable(Routes.MyRecordings) {
             MyRecordingsScreen(
@@ -78,10 +70,10 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
         }
 
         composable(Routes.Info) {
-            // Aquí iría tu InfoScreen(contentPadding)
-            Column(modifier = Modifier.padding(contentPadding)) {
-                Text("Pantalla de Información de la App")
-            }
+            // --- CAMBIO: Usar la pantalla real ---
+            InfoScreen(
+                onBack = { nav.popBackStack() },
+            )
         }
 
         composable(Routes.Profile) {

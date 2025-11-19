@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.work.runtime.ktx)
 
     implementation(libs.play.services.auth)
+    implementation(libs.androidx.compose.material3)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
