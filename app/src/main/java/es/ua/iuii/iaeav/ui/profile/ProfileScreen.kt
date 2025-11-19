@@ -25,9 +25,15 @@ fun ProfileScreen(
     val isLoading by vm.isLoading.collectAsState()
     val message by vm.message.collectAsState()
 
+    // 💡 CAMBIO CLAVE: Recoger el nuevo estado de control de acceso
+    val canChangePassword by vm.canChangePassword.collectAsState()
+
     // Estados locales para el formulario
     var currentPass by remember { mutableStateOf("") }
     var newPass by remember { mutableStateOf("") }
+    // NOTA: Si corregiste el DTO a 3 campos, deberías tener aquí 'confirmPass'
+    // y usarlo en la llamada a vm.changePassword. Mantenemos el código actual
+    // por simplicidad.
 
     // Mostrar Snackbar si hay mensajes
     val snackbarHostState = remember { SnackbarHostState() }
@@ -35,7 +41,7 @@ fun ProfileScreen(
         message?.let {
             snackbarHostState.showSnackbar(it)
             vm.clearMessage()
-            // Limpiar campos si fue éxito (opcional, requiere lógica extra, lo dejamos simple)
+            // Limpiar campos si fue éxito
             if (it.contains("correctamente")) {
                 currentPass = ""
                 newPass = ""
@@ -103,45 +109,65 @@ fun ProfileScreen(
 
                 Divider()
 
-                Text(
-                    "Cambiar Contraseña",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                // =========================================================
+                // 💡 CAMBIO CLAVE: Renderizado Condicional
+                // =========================================================
+                if (canChangePassword) {
+                    Text(
+                        "Cambiar Contraseña",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
 
-                // --- Formulario de Cambio de Contraseña ---
-                OutlinedTextField(
-                    value = currentPass,
-                    onValueChange = { currentPass = it },
-                    label = { Text("Contraseña Actual") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    // --- Formulario de Cambio de Contraseña ---
+                    OutlinedTextField(
+                        value = currentPass,
+                        onValueChange = { currentPass = it },
+                        label = { Text("Contraseña Actual") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                OutlinedTextField(
-                    value = newPass,
-                    onValueChange = { newPass = it },
-                    label = { Text("Nueva Contraseña") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    OutlinedTextField(
+                        value = newPass,
+                        onValueChange = { newPass = it },
+                        label = { Text("Nueva Contraseña") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                Button(
-                    onClick = { vm.changePassword(currentPass, newPass) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("Actualizar Contraseña")
+                    // Asegúrate de añadir el tercer campo si lo implementaste
+
+                    Button(
+                        onClick = { vm.changePassword(currentPass, newPass) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text("Actualizar Contraseña")
+                        }
                     }
+                } else {
+                    // Mostrar un mensaje claro en lugar del formulario
+                    Text(
+                        "Gestión de Contraseña",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Text(
+                        "Tu contraseña es gestionada por tu proveedor externo (Google). Por favor, cambia tu contraseña directamente en la configuración de tu cuenta de Google.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
                 }
+                // =========================================================
             }
         }
     }

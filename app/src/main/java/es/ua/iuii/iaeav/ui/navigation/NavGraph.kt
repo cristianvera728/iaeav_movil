@@ -17,7 +17,6 @@ object Routes {
     const val Record = "record"
     // --- NUEVAS RUTAS ---
     const val Profile = "profile"
-    const val MyRecordings = "myRecordings"
     const val Info = "info"
 }
 
@@ -49,12 +48,11 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
                 onNavigateToProfile = {
                     nav.navigate(Routes.Profile)
                 },
-                onNavigateToMyRecordings = {
-                    nav.navigate(Routes.MyRecordings)
-                },
+
                 onNavigateToInfo = {
                     nav.navigate(Routes.Info)
                 }
+        
             )
         }
 

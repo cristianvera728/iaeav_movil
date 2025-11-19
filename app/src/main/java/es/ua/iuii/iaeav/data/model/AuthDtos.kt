@@ -37,12 +37,14 @@ data class UserDto(
     val id: Int,
     val email: String,
     val username: String?, // <-- CAMBIADO de 'name' a 'username'
-    val role: String
+    val role: String,
+    @Json(name = "auth_provider") val authProvider: String
     // 'is_active' eliminado porque el servidor no lo envía
 )
 
 // DTO para cambiar la contraseña
 data class ChangePasswordRequest(
     val current_password: String,
-    val new_password: String
+    val new_password: String,
+    val confirm_password: String = new_password
 )

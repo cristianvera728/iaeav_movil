@@ -37,11 +37,9 @@ import androidx.compose.material.icons.filled.MoreVert
 @Composable
 fun RecordScreen(
     // --- Firma de la función MODIFICADA ---
-    // Ya no recibe 'contentPadding', ahora recibe las acciones de navegación
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToMyRecordings: () -> Unit,
-    onNavigateToInfo: () -> Unit // Añadido para el botón de "Info"
+    onNavigateToInfo: () -> Unit
 ) {
     val context = LocalContext.current
     val vm: RecordViewModel = viewModel(factory = RecordViewModel.Factory(context))
@@ -117,13 +115,6 @@ fun RecordScreen(
                             onClick = {
                                 showMenu = false
                                 onNavigateToProfile() // Llama a la navegación
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Mis Grabaciones") },
-                            onClick = {
-                                showMenu = false
-                                onNavigateToMyRecordings() // Llama a la navegación
                             }
                         )
                         DropdownMenuItem(

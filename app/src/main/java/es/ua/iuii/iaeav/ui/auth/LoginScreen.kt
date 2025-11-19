@@ -158,8 +158,16 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Icon(painter = painterResource(id = R.drawable.ic_google_logo), contentDescription = "Logo Google") // (Necesitarías añadir el logo a tus drawables)
+            // 💡 CAMBIO CLAVE: Añadir el icono de Google
+            Image(
+                painter = painterResource(id = R.drawable.google_logo),
+                contentDescription = "Logo de Google",
+                modifier = Modifier.size(20.dp) // Ajusta el tamaño si es necesario
+            )
+
+            // Añadir un espaciador para separar el icono del texto
             Spacer(Modifier.width(8.dp))
+
             Text("Continuar con Google")
         }
 

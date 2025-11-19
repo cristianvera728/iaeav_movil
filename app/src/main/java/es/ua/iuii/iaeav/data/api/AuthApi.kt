@@ -18,6 +18,6 @@ interface AuthApi {
     @GET("users/me")
     suspend fun getMe(): UserDto
 
-    @PUT("users/me/change-password")
+    @POST("users/me/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
 }
