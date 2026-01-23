@@ -10,6 +10,8 @@ import es.ua.iuii.iaeav.ui.auth.RegisterScreen
 import es.ua.iuii.iaeav.ui.info.InfoScreen
 import es.ua.iuii.iaeav.ui.profile.ProfileScreen
 import es.ua.iuii.iaeav.ui.record.RecordScreen
+import es.ua.iuii.iaeav.ui.loading.LoadingScreen
+import es.ua.iuii.iaeav.ui.results.ResultScreen
 
 /**
  * Define las rutas de navegación utilizadas en la aplicación.
@@ -19,6 +21,8 @@ object Routes {
     const val Login = "login"
     const val Register = "register"
     const val Record = "record"
+    const val Loading = "loading"
+    const val Result = "result"
     const val Profile = "profile"
     const val Info = "info"
 }
@@ -67,6 +71,9 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
                 },
                 onNavigateToInfo = {
                     nav.navigate(Routes.Info)
+                },
+                onNavigateToLoading = {
+                    nav.navigate(Routes.Loading)
                 }
             )
         }
@@ -75,6 +82,34 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
         composable(Routes.Info) {
             InfoScreen(
                 onBack = { nav.popBackStack() },
+            )
+        }
+
+        // --- Ruta de Carga ---
+        composable(Routes.Loading) {
+            LoadingScreen(
+                onNavigateToResult = {
+                    nav.navigate(Routes.Result)
+                }
+            )
+        }
+
+        // --- Ruta de Resultados ---
+        composable(Routes.Result) {
+            ResultScreen(
+                onBack = {
+                    nav.navigate(Routes.Record) { popUpTo(0) }
+                },
+                onLogout = {
+                    // Al cerrar sesión, navega a Login y borra toda la pila de navegación por seguridad
+                    nav.navigate(Routes.Login) { popUpTo(0) }
+                },
+                onNavigateToProfile = {
+                    nav.navigate(Routes.Profile)
+                },
+                onNavigateToInfo = {
+                    nav.navigate(Routes.Info)
+                }
             )
         }
 

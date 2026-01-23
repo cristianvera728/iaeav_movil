@@ -29,6 +29,9 @@ class AudioRecorder(
     // Flag volátil para controlar el estado de grabación de forma segura entre hilos.
     @Volatile private var isRecording = false
 
+    // Flag volátil para controlar si la grabación está pausada.
+    @Volatile private var isPaused = false
+
     // Archivo temporal para almacenar los datos de audio crudo (PCM).
     private var pcmFile: File? = null
 
@@ -87,6 +90,11 @@ class AudioRecorder(
 
                 // Bucle principal: se ejecuta mientras 'isRecording' sea verdadero.
                 while (isRecording) {
+                    // Si está pausado, espera sin escribir datos
+                    if (isPaused) {
+                        Thread.sleep(200)
+                        continue
+                    }
                     // Lee datos del buffer de hardware de AudioRecord.
                     val read = recorder?.read(buf, 0, buf.size) ?: 0
                     // Si se leyeron datos válidos, escríbelos al archivo PCM crudo.
@@ -94,6 +102,21 @@ class AudioRecorder(
                 }
             }
         }.also { it.start() } // Inicia el hilo.
+    }
+
+    /**
+     * Pausa la grabación sin detenerla completamente.
+     * El audio no se capturará mientras esté pausado, pero la grabación se puede reanudar.
+     */
+    fun pause() {
+        isPaused = true
+    }
+
+    /**
+     * Reanuda la grabación si estaba pausada.
+     */
+    fun resume() {
+        isPaused = false
     }
 
     /**

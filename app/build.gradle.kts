@@ -63,6 +63,10 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation("androidx.media3:media3-exoplayer:1.9.0")
+    implementation("androidx.media3:media3-ui:1.9.0")
+    implementation("androidx.media3:media3-session:1.9.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.30.1")
 
 
     // --- RED / CRYPTO / BACKGROUND ---

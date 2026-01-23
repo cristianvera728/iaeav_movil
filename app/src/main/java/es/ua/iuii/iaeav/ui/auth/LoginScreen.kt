@@ -98,18 +98,23 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
     }
     // --------------------------------
 
-    Column(
+    Surface(
         modifier = Modifier
             .padding(contentPadding)
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
-        // Logo de la aplicación
+            // Logo de la aplicación
         Image(
-            painter = painterResource(id = R.drawable.logo_iaeav),
+            painter = painterResource(id = R.drawable.logo_iaeav_remove),
             contentDescription = "Logo de la App",
             modifier = Modifier.size(120.dp)
         )
@@ -121,7 +126,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
         // --- Login con Usuario/Contraseña ---
         OutlinedTextField(
             value = loginIdentifier,
-            onValueChange = { loginIdentifier = it },
+            onValueChange = { loginIdentifier = it.trimEnd() },
             label = { Text("Usuario") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -202,6 +207,7 @@ fun LoginScreen(contentPadding: PaddingValues, onLogged: () -> Unit, onGoRegiste
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
+        }
         }
     }
 }

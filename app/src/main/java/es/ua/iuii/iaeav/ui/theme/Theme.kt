@@ -9,6 +9,9 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.SideEffect
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.ui.graphics.Color
 
 /**
  * Esquema de colores para el tema oscuro.
@@ -56,22 +59,34 @@ fun IAEAVTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        // 1. Prioridad: Color Dinámico (si está activado y el SO es compatible)
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (darkTheme) dynamicDarkColorScheme(context)
+            else dynamicLightColorScheme(context)
         }
 
-        // 2. Si no hay color dinámico, usa el esquema manual de tema oscuro
         darkTheme -> DarkColorScheme
-
-        // 3. Por defecto, usa el esquema manual de tema claro
         else -> LightColorScheme
+    }
+
+    // Control del system UI
+    val systemUiController = rememberSystemUiController()
+
+    SideEffect {
+        systemUiController.setStatusBarColor(
+            color = Color.Transparent,
+            darkIcons = !darkTheme     // iconos claros en dark theme y oscuros en light theme
+        )
+
+        systemUiController.setNavigationBarColor(
+            color = Color.Transparent,
+            darkIcons = !darkTheme
+        )
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // 'Typography' viene del archivo Type.kt
+        typography = Typography,
         content = content
     )
 }

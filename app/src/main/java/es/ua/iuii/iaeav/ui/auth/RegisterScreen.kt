@@ -56,97 +56,103 @@ fun RegisterScreen(contentPadding: PaddingValues, onRegistered: () -> Unit) {
      * Dispara la navegación a la siguiente pantalla (onRegistered).
      */
     LaunchedEffect(done) { if (done) onRegistered() }
-
-    // 1. Columna centrada que ocupa toda la pantalla (igual que Login)
-    Column(
+    Surface(
         modifier = Modifier
-            .padding(contentPadding) // Mantenemos el padding original
-            .fillMaxSize()           // Ocupa toda la pantalla
-            .padding(16.dp),         // Añade un padding interno
-        verticalArrangement = Arrangement.Center, // Centra verticalmente
-        horizontalAlignment = Alignment.CenterHorizontally // Centra horizontalmente
+            .padding(contentPadding)
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-
-        // --- Logo añadido ---
-        /** Muestra el logo de la aplicación. */
-        Image(
-            painter = painterResource(id = R.drawable.logo_iaeav),
-            contentDescription = "Logo de la App",
-            modifier = Modifier.size(120.dp) // Puedes ajustar el tamaño
-        )
-        Spacer(Modifier.height(24.dp))
-        // -----------------------
-
-        Text("Crear cuenta", style = MaterialTheme.typography.headlineMedium) // Título más grande
-        Spacer(Modifier.height(24.dp))
-
-        // Campo: Usuario
-        /** Campo de texto para introducir el nombre de usuario. */
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Usuario") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
-            leadingIcon = { // Añade un icono
-                Icon(Icons.Default.Person, contentDescription = "Icono de usuario")
-            }
-        )
-        Spacer(Modifier.height(8.dp))
-
-        // Campo: Correo Electrónico
-        /** Campo de texto para introducir la dirección de correo electrónico. */
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo Electrónico") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = {
-                Icon(Icons.Default.Email, contentDescription = "Icono de correo")
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email) // Optimización para email
-        )
-        Spacer(Modifier.height(8.dp))
-
-        // Campo: Contraseña
-        /** Campo de texto para introducir la contraseña. Utiliza PasswordVisualTransformation para ocultar la entrada. */
-        OutlinedTextField(
-            value = pass,
-            onValueChange = { pass = it },
-            label = { Text("Contraseña") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
-            leadingIcon = { // Añade un icono
-                Icon(Icons.Default.Lock, contentDescription = "Icono de contraseña")
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), // Teclado de contraseña
-            visualTransformation = PasswordVisualTransformation() // Oculta la contraseña
-        )
-        Spacer(Modifier.height(20.dp))
-
-        // Botón de Registro
-        /**
-         * Botón de acción principal. Se deshabilita mientras el ViewModel está en estado de carga.
-         * Al hacer clic, llama a [RegisterViewModel.submit] con los datos del formulario.
-         */
-        Button(
-            enabled = !loading,
-            onClick = { vm.submit(username, email, pass) }, // <-- EMAIL INCLUIDO EN LA LLAMADA
-            modifier = Modifier.fillMaxWidth() // Ocupa todo el ancho
+        // 1. Columna centrada que ocupa toda la pantalla (igual que Login)
+        Column(
+            modifier = Modifier
+                .padding(contentPadding) // Mantenemos el padding original
+                .fillMaxSize()           // Ocupa toda la pantalla
+                .padding(16.dp),         // Añade un padding interno
+            verticalArrangement = Arrangement.Center, // Centra verticalmente
+            horizontalAlignment = Alignment.CenterHorizontally // Centra horizontalmente
         ) {
-            Text(if (loading) "Creando..." else "Registrar")
-        }
 
-        // Texto de error
-        /** Muestra un mensaje de error si el ViewModel ha reportado un fallo en el proceso de registro. */
-        if (err != null) {
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Error: $err",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 8.dp)
+            // --- Logo añadido ---
+            /** Muestra el logo de la aplicación. */
+            Image(
+                painter = painterResource(id = R.drawable.logo_iaeav_remove),
+                contentDescription = "Logo de la App",
+                modifier = Modifier.size(120.dp) // Puedes ajustar el tamaño
             )
+            Spacer(Modifier.height(24.dp))
+            // -----------------------
+
+            Text("Crear cuenta", style = MaterialTheme.typography.headlineMedium) // Título más grande
+            Spacer(Modifier.height(24.dp))
+
+            // Campo: Usuario
+            /** Campo de texto para introducir el nombre de usuario. */
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it.trimEnd() },
+                label = { Text("Usuario") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
+                leadingIcon = { // Añade un icono
+                    Icon(Icons.Default.Person, contentDescription = "Icono de usuario")
+                }
+            )
+            Spacer(Modifier.height(8.dp))
+
+            // Campo: Correo Electrónico
+            /** Campo de texto para introducir la dirección de correo electrónico. */
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it.trimEnd() },
+                label = { Text("Correo Electrónico") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = {
+                    Icon(Icons.Default.Email, contentDescription = "Icono de correo")
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email) // Optimización para email
+            )
+            Spacer(Modifier.height(8.dp))
+
+            // Campo: Contraseña
+            /** Campo de texto para introducir la contraseña. Utiliza PasswordVisualTransformation para ocultar la entrada. */
+            OutlinedTextField(
+                value = pass,
+                onValueChange = { pass = it },
+                label = { Text("Contraseña") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
+                leadingIcon = { // Añade un icono
+                    Icon(Icons.Default.Lock, contentDescription = "Icono de contraseña")
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), // Teclado de contraseña
+                visualTransformation = PasswordVisualTransformation() // Oculta la contraseña
+            )
+            Spacer(Modifier.height(20.dp))
+
+            // Botón de Registro
+            /**
+             * Botón de acción principal. Se deshabilita mientras el ViewModel está en estado de carga.
+             * Al hacer clic, llama a [RegisterViewModel.submit] con los datos del formulario.
+             */
+            Button(
+                enabled = !loading,
+                onClick = { vm.submit(username, email, pass) }, // <-- EMAIL INCLUIDO EN LA LLAMADA
+                modifier = Modifier.fillMaxWidth() // Ocupa todo el ancho
+            ) {
+                Text(if (loading) "Creando..." else "Registrar")
+            }
+
+            // Texto de error
+            /** Muestra un mensaje de error si el ViewModel ha reportado un fallo en el proceso de registro. */
+            if (err != null) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Error: $err",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
         }
     }
 }
