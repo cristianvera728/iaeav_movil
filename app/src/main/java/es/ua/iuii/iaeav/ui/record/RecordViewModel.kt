@@ -58,6 +58,27 @@ class RecordViewModel(private val appContext: Context) : ViewModel() {
     }
 
     /**
+     * Pausa la grabación actual sin detenerla ni enviar.
+     */
+    fun pauseRecording() {
+        recorder.pause()
+    }
+
+    /**
+     * Reanuda una grabación pausada.
+     */
+    fun resumeRecording() {
+        recorder.resume()
+    }
+
+    /**
+     * Cancela la grabación actual y elimina el archivo temporal.
+     */
+    fun cancelRecording() {
+        recorder.cancel()
+    }
+
+    /**
      * Detiene la grabación actual y encola el archivo WAV resultante para su subida cifrada.
      *
      * 1. Detiene la grabación.

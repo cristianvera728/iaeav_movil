@@ -12,14 +12,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-// --- Importaciones que ya tenías ---
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,9 +26,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.work.WorkInfo
 import es.ua.iuii.iaeav.workers.UploadWorker
 import java.util.Locale
-
-// --- Importaciones NUEVAS para el menú ---
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import es.ua.iuii.iaeav.R
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.MediaItem
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.filled.SkipNext
 
 /**
  * # Pantalla de Grabación (RecordScreen)
@@ -43,13 +53,15 @@ import androidx.compose.material.icons.filled.MoreVert
  * @param onLogout Callback para navegar a la pantalla de Login y cerrar la sesión.
  * @param onNavigateToProfile Callback para navegar a la pantalla de perfil.
  * @param onNavigateToInfo Callback para navegar a la pantalla de información.
+ * @param onNavigateToLoading Callback para navegar a la pantalla de carga.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordScreen(
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToInfo: () -> Unit
+    onNavigateToInfo: () -> Unit,
+    onNavigateToLoading: () -> Unit
 ) {
     val context = LocalContext.current
     // Inicialización del ViewModel que orquesta la grabación y la subida
@@ -60,11 +72,229 @@ fun RecordScreen(
     /** Estado local que refleja si el grabador está actualmente activo. */
     var isRecording by remember { mutableStateOf(false) }
 
+    /** Estado local de audio de pregunta en reproducción. */
+    var audioPlaying by remember { mutableStateOf(false) }
+
     /** Estado reactivo del [WorkInfo] para la tarea de subida, observado desde el ViewModel. */
     val workInfo by vm.workInfo.collectAsState()
 
     /** Estado local para controlar la visibilidad del menú desplegable (tres puntos). */
     var showMenu by remember { mutableStateOf(false) }
+
+    /** Estado para controlar la visibilidad del diálogo de cancelación. */
+    var showCancelDialog by remember { mutableStateOf(false) }
+
+    /** Estado para controlar la visibilidad del diálogo de siguiente pregunta. */
+    var showNextQuestionDialog by remember { mutableStateOf(false) }
+
+    /** Estado para detener el tiempo y el audio durante el AlertDialog. */
+    var isStoppingTimeAndAudio by remember { mutableStateOf(false) }
+
+    // --- Estados para las Pruebas ---
+    var currentTest by remember { mutableStateOf<TestItem?>(null) }
+    var testIndex by remember { mutableStateOf(0) }
+    var timeRemaining by remember { mutableStateOf(0) }
+    var isShowingQuestion by remember { mutableStateOf(false) }
+
+    // Lista de pruebas con texto, imagen y duración
+    val testList = listOf(
+        TestItem(
+            title = "Feedback 0",
+            description = "Buenos días",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 1: Memoria",
+            description = "Cuénteme, cómo está su memoria.\n¿Cuáles son las cosas que más le cuesta recordar?",
+            durationMs = 30000,
+            questionAudioResId = R.raw.pregunta1
+        ),
+        TestItem(
+            title = "Feedback 1",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 2: Orientación",
+            description = "Por favor, dígame la fecha de hoy, que día de la semana es, en que mes estamos y en que año.",
+            durationMs = 20000,
+            questionAudioResId = R.raw.pregunta2
+        ),
+        TestItem(
+            title = "Feedback 2",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 3: Reconocimiento de Imágenes",
+            description = "Ahora va a ver seis objetos, diga el nombre de cada uno.\nLuego, tendrá que recordar los objetos cuando se lo pregunte.",
+            durationMs = 30000,
+            questionAudioResId = R.raw.pregunta3,
+            drawableResId = R.drawable.pruebas_objetos
+        ),
+        TestItem(
+            title = "Feedback 3",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 4: Nombres de Hombres",
+            description = "Ahora me tiene que decir nombres propios de hombres, tiene 30 segundos para ello.",
+            durationMs = 30000,
+            questionAudioResId = R.raw.pregunta4
+        ),
+        TestItem(
+            title = "Feedback 4",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 5: Nombres de Mujeres",
+            description = "Ahora en 30 segundos dígame nombres propios de mujeres.",
+            durationMs = 30000,
+            questionAudioResId = R.raw.pregunta5
+        ),
+        TestItem(
+            title = "Feedback 5",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 6: Memoria de Imágenes",
+            description = "Ahora, ¿recuerda los objetos que anteriormente aparecieron?\nPor favor, menciónelos.",
+            durationMs = 60000,
+            questionAudioResId = R.raw.pregunta6,
+            drawableResId = R.drawable.recordar_objetos
+        ),
+        TestItem(
+            title = "Feedback 6",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Prueba 7: Análisis de Imagen",
+            description = "Por último, mire detalladamente la siguiente imagen.\nCuénteme con detalle lo que ve y lo que está ocurriendo.",
+            durationMs = 20000,
+            questionAudioResId = R.raw.pregunta7,
+            drawableResId = R.drawable.imagen_accidente
+        ),
+        TestItem(
+            title = "Feedback 7",
+            description = "Muy bien",
+            durationMs = 1000,
+            isFeedback = true
+        ),
+        TestItem(
+            title = "Fin de la Prueba",
+            description = "Ha finalizado la prueba.\nGracias por su colaboración.",
+            durationMs = 5000,
+            isFeedback = true
+        )
+    )
+
+    // ExoPlayer para reproducir audio de preguntas
+    val exoPlayer = remember { ExoPlayer.Builder(context).build() }
+    DisposableEffect(Unit) {
+        onDispose { exoPlayer.release() }
+    }
+
+    // Detener audio si se detiene la grabación
+    LaunchedEffect(isRecording) {
+        if (!isRecording && exoPlayer.isPlaying) {
+            exoPlayer.stop()
+            isShowingQuestion = false
+        }
+    }
+
+    // Lógica para avanzar entre pruebas con temporizador
+    LaunchedEffect(testIndex, isRecording) {
+        if (!isRecording || testIndex >= testList.size ) return@LaunchedEffect
+
+        val test = testList[testIndex]
+
+        // Reproduce audio de la pregunta si existe
+        if (test.questionAudioResId != null && !test.isFeedback) {
+            isShowingQuestion = true
+            currentTest = test
+            vm.pauseRecording()
+            audioPlaying = true
+
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+
+            val mediaItem = MediaItem.fromUri(
+                "android.resource://${context.packageName}/${test.questionAudioResId}"
+            )
+            exoPlayer.setMediaItem(mediaItem)
+            exoPlayer.prepare()
+
+            // Esperar a que el reproductor esté listo
+            while (!exoPlayer.isCommandAvailable(ExoPlayer.COMMAND_PLAY_PAUSE)) {
+                delay(100)
+            }
+
+            exoPlayer.play()
+            delay(1000)
+
+            // Esperar a que termine el audio
+            while (exoPlayer.isPlaying) {
+                delay(200)
+            }
+
+            isShowingQuestion = false
+            vm.resumeRecording()
+            audioPlaying = false
+        } else {
+            currentTest = test
+        }
+
+        // Tiempo de respuesta
+        if (!test.isFeedback) {
+            val totalSeconds = test.durationMs / 1000
+            for (second in totalSeconds downTo 0) {
+                // Esperar si hay un diálogo abierto
+                while (isStoppingTimeAndAudio) {
+                    delay(100)
+                }
+                timeRemaining = second
+                delay(1_000)
+            }
+        } else {
+            delay(test.durationMs.toLong())
+        }
+
+        // Pasar a la siguiente prueba
+        testIndex++
+
+        // Si terminaron las pruebas
+        if (testIndex >= testList.size) {
+            vm.stopAndEnqueueUpload()
+            isRecording = false
+        }
+    }
+
+    // Navegar a la pantalla de carga si la subida fue exitosa o a la de grabación si falló
+    LaunchedEffect(workInfo) {
+        // Solo cambiar de pantalla si la subida fue exitosa
+        if (workInfo?.state == WorkInfo.State.SUCCEEDED) {
+            onNavigateToLoading()
+            delay(1000)
+            currentTest = null
+            testIndex = 0
+        } else if (workInfo?.state == WorkInfo.State.FAILED) {
+            // Reiniciar el estado local si la subida falló
+            currentTest = null
+            testIndex = 0
+        }
+    }
+
 
     // --- Lógica de Estado de la UI ---
 
@@ -128,7 +358,12 @@ fun RecordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Grabación Segura") },
+                title = { Text("Grabación segura") },
+                // Colores personalizados para la barra superior
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
                 actions = {
                     // Icono de menú (tres puntos) que controla la visibilidad de [DropdownMenu]
                     IconButton(onClick = { showMenu = true }) {
@@ -161,6 +396,15 @@ fun RecordScreen(
                                 onLogout() // Cierre de sesión y navegación al login
                             }
                         )
+                        //
+                        DropdownMenuItem(
+                            text = { Text("Ir a Pantalla de Carga") },
+                            onClick = {
+                                showMenu = false
+                                onNavigateToLoading() // Navegación directa a carga
+                            }
+                        )
+                        //
                     }
                 }
             )
@@ -172,34 +416,155 @@ fun RecordScreen(
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceAround
+            verticalArrangement = Arrangement.Top
         ) {
-            Text(
-                "Grabación Segura",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
-            )
-
-            // Botón Flotante Grande (FAB) de Iniciar/Detener Grabación
-            LargeFloatingActionButton(
-                onClick = {
-                    if (!isRecording) {
-                        startOrAskPermission()
-                    } else {
-                        vm.stopAndEnqueueUpload() // Detiene y pone la subida en cola
-                        isRecording = false
-                    }
-                },
-                // Cambia de color basado en el estado de grabación
-                containerColor = if (isRecording) MaterialTheme.colorScheme.errorContainer
-                else MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(120.dp)
+            // Mostrar tiempo restante arriba si esta grabando, hay pregunta (no feedback) y no se está mostrando la pregunta
+            AnimatedVisibility(
+                visible = isRecording && currentTest != null && !currentTest!!.isFeedback && !isShowingQuestion,
+                enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(1500)),
+                exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(1500)),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
-                    contentDescription = if (isRecording) "Detener grabación" else "Iniciar grabación",
-                    modifier = Modifier.size(60.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Tiempo restante: ${timeRemaining}s",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    textAlign = TextAlign.Center
                 )
+            }
+
+            AnimatedContent(
+                targetState = currentTest,
+                transitionSpec = {
+                    fadeIn(animationSpec = androidx.compose.animation.core.tween(600)) togetherWith
+                    fadeOut(animationSpec = androidx.compose.animation.core.tween(600))
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { test ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!isRecording && testIndex == 0) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                "Para iniciar la prueba, pulse el botón de micrófono.",
+                                style = MaterialTheme.typography.headlineMedium,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            LargeFloatingActionButton(
+                                onClick = {
+                                    testIndex = 0
+                                    currentTest = null
+                                    startOrAskPermission()
+                                },
+                                modifier = Modifier.size(120.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Mic,
+                                    contentDescription = "Iniciar grabación",
+                                    modifier = Modifier.size(60.dp)
+                                )
+                            }
+                        }
+                    } else if (isRecording && test != null) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (test.isFeedback) MaterialTheme.colorScheme.background
+                                else CardDefaults.cardColors().containerColor
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                // Pregunta de la prueba
+                                Text(
+                                    text = test.description,
+                                    style = if (test.isFeedback) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineSmall,
+                                    textAlign = if (test.isFeedback) TextAlign.Center else TextAlign.Justify,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                // Imagen asociada a la prueba, si existe
+                                if (test.drawableResId != null) {
+                                    Image(
+                                        painter = painterResource(id = test.drawableResId),
+                                        contentDescription = test.title,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Botones en línea - Botón Flotante Grande (FAB) de Cancelar Grabación y Pasar Pregunta - Solo visibles durante grabación
+            if (isRecording) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Botón de Cancelar
+                    LargeFloatingActionButton(
+                        onClick = {
+                            showCancelDialog = true
+                        },
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.size(80.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Clear,
+                            contentDescription = "Cancelar grabación",
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Botón de Pasar pregunta
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            if (!audioPlaying) { // Verificar que no haya audio sonando
+                                showNextQuestionDialog = true
+                            }
+                        },
+                        //containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.height(60.dp),
+                    ) {
+                        Text(
+                            text = "Siguiente pregunta",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.SkipNext,
+                            contentDescription = "Pasar pregunta",
+                            modifier = Modifier.size(40.dp),
+                        )
+                    }
+                }
             }
 
             // Tarjeta de Estado (Muestra el status)
@@ -218,4 +583,90 @@ fun RecordScreen(
             }
         }
     }
+
+    // Diálogo de confirmación para cancelar
+    if (showCancelDialog) {
+        LaunchedEffect(showCancelDialog) {
+            isStoppingTimeAndAudio = true
+        }
+        AlertDialog(
+            onDismissRequest = {
+                showCancelDialog = false
+                isStoppingTimeAndAudio = false
+            },
+            title = { Text("Cancelar prueba") },
+            text = { Text("Si da a Aceptar la prueba se cancelará y volverá a la pantalla inicial.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelDialog = false
+                        isStoppingTimeAndAudio = false
+                        isRecording = false
+                        currentTest = null
+                        testIndex = 0
+                        exoPlayer.stop()
+                        vm.cancelRecording()
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCancelDialog = false
+                        isStoppingTimeAndAudio = false
+                    }
+                ) {
+                    Text("Continuar prueba")
+                }
+            }
+        )
+    }
+
+    // Diálogo de confirmación para siguiente pregunta
+    if (showNextQuestionDialog) {
+        LaunchedEffect(showNextQuestionDialog) {
+            isStoppingTimeAndAudio = true
+        }
+        AlertDialog(
+            onDismissRequest = {
+                showNextQuestionDialog = false
+                isStoppingTimeAndAudio = false
+            },
+            title = { Text("Siguiente pregunta") },
+            text = { Text("Si da a Aceptar pasará a la siguiente pregunta, si no ha terminado de responder pulse Cancelar.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNextQuestionDialog = false
+                        isStoppingTimeAndAudio = false
+                        testIndex++
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showNextQuestionDialog = false
+                        isStoppingTimeAndAudio = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
+
+// Data class para las pruebas
+data class TestItem(
+    val title: String,
+    val description: String,
+    val durationMs: Int, // Tiempo de respuesta
+    val drawableResId: Int? = null,
+    val isFeedback: Boolean = false,
+    val questionAudioResId: Int? = null
+)

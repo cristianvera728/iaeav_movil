@@ -29,6 +29,9 @@ class AudioRecorder(
     // Flag volátil para controlar el estado de grabación de forma segura entre hilos.
     @Volatile private var isRecording = false
 
+    // Flag volátil para controlar si la grabación está pausada.
+    @Volatile private var isPaused = false
+
     // Archivo temporal para almacenar los datos de audio crudo (PCM).
     private var pcmFile: File? = null
 
@@ -87,6 +90,11 @@ class AudioRecorder(
 
                 // Bucle principal: se ejecuta mientras 'isRecording' sea verdadero.
                 while (isRecording) {
+                    // Si está pausado, espera sin escribir datos
+                    if (isPaused) {
+                        Thread.sleep(200)
+                        continue
+                    }
                     // Lee datos del buffer de hardware de AudioRecord.
                     val read = recorder?.read(buf, 0, buf.size) ?: 0
                     // Si se leyeron datos válidos, escríbelos al archivo PCM crudo.
@@ -94,6 +102,58 @@ class AudioRecorder(
                 }
             }
         }.also { it.start() } // Inicia el hilo.
+    }
+
+    /**
+     * Pausa la grabación sin detenerla completamente.
+     * El audio no se capturará mientras esté pausado, pero la grabación se puede reanudar.
+     */
+    fun pause() {
+        isPaused = true
+    }
+
+    /**
+     * Reanuda la grabación si estaba pausada.
+     */
+    fun resume() {
+        isPaused = false
+    }
+
+        /**
+     * Cancela la grabación, detiene el proceso y elimina los archivos generados.
+     * 
+     * Este método debe usarse cuando el usuario cancela la grabación y no desea
+     * conservar ningún archivo de audio. No retorna ningún archivo.
+     */
+    fun cancel() {
+        // Señala al hilo de grabación que debe detenerse.
+        isRecording = false
+        isPaused = false
+
+        // Detiene la captura de hardware y libera los recursos.
+        recorder?.stop()
+        recorder?.release()
+        recorder = null
+
+        // Espera a que el hilo de grabación termine de escribir los últimos datos (join).
+        recordingThread?.join()
+        recordingThread = null
+        
+        // Elimina el archivo PCM temporal si existe
+        pcmFile?.let { file ->
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        pcmFile = null
+
+        // Elimina el archivo WAV de destino si existe (puede haberse creado parcialmente)
+        wavFile?.let { file ->
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        wavFile = null
     }
 
     /**
