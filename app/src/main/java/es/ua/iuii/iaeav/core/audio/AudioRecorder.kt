@@ -119,6 +119,43 @@ class AudioRecorder(
         isPaused = false
     }
 
+        /**
+     * Cancela la grabación, detiene el proceso y elimina los archivos generados.
+     * 
+     * Este método debe usarse cuando el usuario cancela la grabación y no desea
+     * conservar ningún archivo de audio. No retorna ningún archivo.
+     */
+    fun cancel() {
+        // Señala al hilo de grabación que debe detenerse.
+        isRecording = false
+        isPaused = false
+
+        // Detiene la captura de hardware y libera los recursos.
+        recorder?.stop()
+        recorder?.release()
+        recorder = null
+
+        // Espera a que el hilo de grabación termine de escribir los últimos datos (join).
+        recordingThread?.join()
+        recordingThread = null
+        
+        // Elimina el archivo PCM temporal si existe
+        pcmFile?.let { file ->
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        pcmFile = null
+
+        // Elimina el archivo WAV de destino si existe (puede haberse creado parcialmente)
+        wavFile?.let { file ->
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+        wavFile = null
+    }
+
     /**
      * Detiene la grabación y ensambla el archivo WAV final.
      *

@@ -72,6 +72,13 @@ class RecordViewModel(private val appContext: Context) : ViewModel() {
     }
 
     /**
+     * Cancela la grabación actual y elimina el archivo temporal.
+     */
+    fun cancelRecording() {
+        recorder.cancel()
+    }
+
+    /**
      * Detiene la grabación actual y encola el archivo WAV resultante para su subida cifrada.
      *
      * 1. Detiene la grabación.

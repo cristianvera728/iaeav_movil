@@ -5,14 +5,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import es.ua.iuii.iaeav.ui.results.ExpandableCard
 
 
 /**
@@ -71,6 +72,7 @@ fun ResultScreen(
 
     var transcriptionExpanded by remember { mutableStateOf(false) }
     var explainabilityExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -86,6 +88,18 @@ fun ResultScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
+                    // Botón de descarga de PDF
+                    IconButton(onClick = {
+                        generarPDFResultados(
+                            context = context,
+                            prediction = prediction,
+                            confidence = confidence,
+                            transcription = transcription,
+                            explicability = explicability
+                        )
+                    }) {
+                        Icon(Icons.Default.Download, contentDescription = "Descargar PDF")
+                    }
                     // Icono de menú (tres puntos) que controla la visibilidad de [DropdownMenu]
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menú")
