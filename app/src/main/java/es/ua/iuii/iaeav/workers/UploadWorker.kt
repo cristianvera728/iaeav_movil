@@ -47,10 +47,11 @@ class UploadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
                 lengthSeconds = lengthSeconds,
                 clientSnr = clientSnr
             )
-            // Éxito -> Devuelve el SNR y estado como datos de salida
+            // Éxito -> Devuelve el SNR, el estado y el recordingId como datos de salida
             val outputData = workDataOf(
                 KEY_OUTPUT_STATUS to res.status,
-                KEY_OUTPUT_SNR to res.snr
+                KEY_OUTPUT_SNR to res.snr,
+                KEY_OUTPUT_RECORDING_ID to res.recordingId
             )
             Result.success(outputData)
         } catch (e: NonRetryableUploadException) {
@@ -83,6 +84,7 @@ class UploadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
         const val KEY_OUTPUT_STATUS = "output_status"
         const val KEY_OUTPUT_SNR = "output_snr"
         const val KEY_OUTPUT_ERROR = "output_error"
+        const val KEY_OUTPUT_RECORDING_ID = "output_recording_id"
 
         /**
          * Encola una tarea de subida única en el [WorkManager].

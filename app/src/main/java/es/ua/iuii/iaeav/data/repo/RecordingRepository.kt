@@ -1,5 +1,6 @@
 package es.ua.iuii.iaeav.data.repo
 
+import es.ua.iuii.iaeav.core.ServiceLocator.recordingsApi
 import es.ua.iuii.iaeav.core.crypto.AesGcm
 import es.ua.iuii.iaeav.core.crypto.Rsa
 import es.ua.iuii.iaeav.core.crypto.b64u
@@ -185,4 +186,15 @@ class RecordingRepository(
             Result.failure(e)
         }
     }
+
+    // --- Lógica para polling de detalle de grabación ---
+    /**
+     * Obtiene el detalle completo de una grabación específica por su ID.
+     * @param recordingId ID de la grabación a consultar.
+     * @return [RecordingDetailDto] Detalle de la grabación.
+     */
+    suspend fun getRecordingById(recordingId: String): RecordingDetailDto {
+        return recordingsApi.getRecording(recordingId)
+    }
+
 }

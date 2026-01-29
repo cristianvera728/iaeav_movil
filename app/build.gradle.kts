@@ -81,6 +81,7 @@ dependencies {
 
     implementation(libs.play.services.auth)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.runtime.livedata)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

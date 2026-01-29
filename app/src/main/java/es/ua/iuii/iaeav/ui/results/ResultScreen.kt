@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
 
 /**
  * # Pantalla de Resultados (ResultScreen)
@@ -33,46 +35,28 @@ fun ResultScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToInfo: () -> Unit = {}
+    onNavigateToInfo: () -> Unit = {},
+    recordingId: String
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-    var prediction by remember { mutableStateOf(true) }
-    val predictionText by remember { mutableStateOf(if (prediction) "padece de Alzheimer" else "no padece de Alzheimer") }
-    val confidence by remember { mutableStateOf(0.80f) }
-    val confidencePercentage by remember { mutableStateOf((confidence * 100).toInt()) }
-    val results by remember { mutableStateOf("El modelo considera que el paciente $predictionText con una confianza del $confidencePercentage%") }
-    val transcription by remember {
-        mutableStateOf(
-            """
-            Bueno… mi memoria ya no es como antes. A veces se me olvidan cosas recientes, lo que hice ayer o con quién hablé. 
-            Los nombres me cuestan mucho, y a veces entro a una habitación y no sé para qué iba. Las cosas de cuando era joven 
-            las recuerdo mejor, pero lo de ahora se me mezcla.
+    val context = LocalContext.current
 
-            A ver… hoy creo que estamos a… no estoy muy seguro… diría que es martes… o miércoles. El mes… puede que sea marzo… 
-            no, febrero… no sé bien. El año… 2020 y algo… 2022 quizá. Perdón, se me confunde.
+    val vm: ResultViewModel = viewModel(
+        factory = ResultViewModelFactory(recordingId)
+    )
 
-            Las fotos… veo una manzana, un perro, un coche y una casa. Sí, creo que eso era.
+    val uiState by vm.uiState.collectAsState()
 
-            Nombres de hombres… a ver… Juan, José, Manuel, Antonio… también estaba Paco, como un vecino que tuve.
-
-            Nombres de mujeres… María, Carmen, Ana, Rosa… mi hermana se llamaba Pilar… creo.
-
-            De las fotos de antes me acuerdo de… el perro seguro… y la manzana… había algo más… una casa, sí… 
-            el coche no sé si estaba o lo estoy inventando.
-
-            En el dibujo… veo una casa por dentro. Hay una señora en la cocina, parece que está fregando o cocinando. 
-            Un niño está cerca, como jugando o pidiendo algo. Creo que hay agua en el suelo, como si se hubiera derramado, 
-            y la señora no se da cuenta. Todo parece un poco desordenado, como que algo está pasando pero nadie se da cuenta del todo. 
-            Me cuesta verlo bien, pero es lo que alcanzo a entender.
-            """.trimIndent()
-        )
+    // Cargar datos al entrar
+    LaunchedEffect(recordingId) {
+        vm.loadRecordingDetails(recordingId)
     }
+
+    var showMenu by remember { mutableStateOf(false) }
 
     val explicability by remember { mutableStateOf("El modelo ha analizado características acústicas y prosódicas del audio, como la fluidez del habla, pausas, entonación y ritmo. Además, ha tenido en cuenta patrones lingüísticos en la transcripción, como la complejidad sintáctica y el vocabulario utilizado. Estas características son indicativas de posibles deterioros cognitivos asociados con el Alzheimer.") }
 
     var transcriptionExpanded by remember { mutableStateOf(false) }
     var explainabilityExpanded by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -88,47 +72,49 @@ fun ResultScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
-                    // Botón de descarga de PDF
-                    IconButton(onClick = {
-                        generarPDFResultados(
-                            context = context,
-                            prediction = prediction,
-                            confidence = confidence,
-                            transcription = transcription,
-                            explicability = explicability
-                        )
-                    }) {
-                        Icon(Icons.Default.Download, contentDescription = "Descargar PDF")
+                    if (uiState is ResultUiState.Success) {
+                        val success = uiState as ResultUiState.Success
+
+                        IconButton(onClick = {
+                            generarPDFResultados(
+                                context = context,
+                                prediction = success.predictionResult,
+                                confidence = success.predictionConfidence,
+                                transcription = success.predictionTranscription,
+                                explicability = explicability
+                            )
+                        }) {
+                            Icon(Icons.Default.Download, contentDescription = "Descargar PDF")
+                        }
                     }
-                    // Icono de menú (tres puntos) que controla la visibilidad de [DropdownMenu]
+
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menú")
                     }
 
-                    // Menú desplegable con opciones de navegación y sesión
                     DropdownMenu(
                         expanded = showMenu,
-                        onDismissRequest = { showMenu = false } // Se cierra al tocar fuera
+                        onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
                             text = { Text("Mi Cuenta") },
                             onClick = {
                                 showMenu = false
-                                onNavigateToProfile() // Navegación al perfil
+                                onNavigateToProfile()
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Información de la App") },
                             onClick = {
                                 showMenu = false
-                                onNavigateToInfo() // Navegación a información
+                                onNavigateToInfo()
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Cerrar Sesión") },
                             onClick = {
                                 showMenu = false
-                                onLogout() // Cierre de sesión y navegación al login
+                                onLogout()
                             }
                         )
                     }
@@ -136,77 +122,100 @@ fun ResultScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            Text(
-                text = results,
-                style = MaterialTheme.typography.headlineLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
 
-            Spacer(modifier = Modifier.height(28.dp))
+        when (uiState) {
 
-            Text(
-                text = "Transcripción",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Left,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth()
-            )
+            ResultUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            is ResultUiState.Error -> {
+                val msg = (uiState as ResultUiState.Error).message
 
-            Text(
-                text = "Transcripción de las respuestas del paciente.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.secondary,
-                textAlign = TextAlign.Left,
-                modifier = Modifier.fillMaxWidth()
-            )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = msg,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            is ResultUiState.Success -> {
+                val data = uiState as ResultUiState.Success
 
-            ExpandableCard(
-                content = transcription,
-                expanded = transcriptionExpanded,
-                onToggle = { transcriptionExpanded = !transcriptionExpanded }
-            )
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
 
-            Spacer(modifier = Modifier.height(22.dp))
+                    Text(
+                        text = "El modelo considera que el paciente ${ if (data.predictionResult == "positive") "padece de Alzheimer" else "no padece de Alzheimer" } con una confianza del ${data.predictionConfidence}",
+                        style = MaterialTheme.typography.headlineLarge,
+                        textAlign = TextAlign.Center
+                    )
 
-            Text(
-                text = "Explicabilidad",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Left,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth()
-            )
+                    Spacer(modifier = Modifier.height(28.dp))
 
-            Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Transcripción",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-            Text(
-                text = " Explicación de en que se basa el modelo para generar su resultados.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.secondary,
-                textAlign = TextAlign.Left,
-                modifier = Modifier.fillMaxWidth()
-            )
+                    ExpandableCard(
+                        content = data.predictionTranscription,
+                        expanded = transcriptionExpanded,
+                        onToggle = { transcriptionExpanded = !transcriptionExpanded }
+                    )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
 
-            ExpandableCard(
-                content = explicability,
-                expanded = explainabilityExpanded,
-                onToggle = { explainabilityExpanded = !explainabilityExpanded }
-            )
+                    Text(
+                        text = "Explicabilidad",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    ExpandableCard(
+                        content = explicability,
+                        expanded = explainabilityExpanded,
+                        onToggle = { explainabilityExpanded = !explainabilityExpanded }
+                    )
+                }
+            }
         }
+    }
+}
+
+// Factory para ResultViewModel con parámetro
+class ResultViewModelFactory(
+    private val recordingId: String
+) : ViewModelProvider.Factory {
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ResultViewModel::class.java)) {
+            return ResultViewModel(recordingId) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

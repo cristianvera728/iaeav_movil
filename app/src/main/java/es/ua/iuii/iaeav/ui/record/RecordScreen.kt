@@ -42,6 +42,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.MediaItem
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
 
 /**
  * # Pantalla de Grabación (RecordScreen)
@@ -61,7 +64,7 @@ fun RecordScreen(
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToInfo: () -> Unit,
-    onNavigateToLoading: () -> Unit
+    onNavigateToLoading: (String) -> Unit
 ) {
     val context = LocalContext.current
     // Inicialización del ViewModel que orquesta la grabación y la subida
@@ -81,6 +84,9 @@ fun RecordScreen(
     /** Estado local para controlar la visibilidad del menú desplegable (tres puntos). */
     var showMenu by remember { mutableStateOf(false) }
 
+    /** Estado local para controlar cuando está parado el audio durante la prueba */
+    var isAudioStopped by remember { mutableStateOf(false) }
+
     /** Estado para controlar la visibilidad del diálogo de cancelación. */
     var showCancelDialog by remember { mutableStateOf(false) }
 
@@ -89,6 +95,10 @@ fun RecordScreen(
 
     /** Estado para detener el tiempo y el audio durante el AlertDialog. */
     var isStoppingTimeAndAudio by remember { mutableStateOf(false) }
+
+    /** Estado para almacenar el ID de la grabación subida. */
+    var recordingId by remember { mutableStateOf<String?>(null) }
+
 
     // --- Estados para las Pruebas ---
     var currentTest by remember { mutableStateOf<TestItem?>(null) }
@@ -101,7 +111,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 0",
             description = "Buenos días",
-            durationMs = 1000,
+            durationMs = 500,
             isFeedback = true
         ),
         TestItem(
@@ -224,6 +234,7 @@ fun RecordScreen(
             isShowingQuestion = true
             currentTest = test
             vm.pauseRecording()
+            isAudioStopped = true
             audioPlaying = true
 
             exoPlayer.stop()
@@ -250,6 +261,7 @@ fun RecordScreen(
 
             isShowingQuestion = false
             vm.resumeRecording()
+            isAudioStopped = false
             audioPlaying = false
         } else {
             currentTest = test
@@ -282,19 +294,25 @@ fun RecordScreen(
 
     // Navegar a la pantalla de carga si la subida fue exitosa o a la de grabación si falló
     LaunchedEffect(workInfo) {
-        // Solo cambiar de pantalla si la subida fue exitosa
-        if (workInfo?.state == WorkInfo.State.SUCCEEDED) {
-            onNavigateToLoading()
-            delay(1000)
-            currentTest = null
-            testIndex = 0
-        } else if (workInfo?.state == WorkInfo.State.FAILED) {
-            // Reiniciar el estado local si la subida falló
-            currentTest = null
-            testIndex = 0
+        workInfo?.let { info ->
+            if (info.state == WorkInfo.State.SUCCEEDED) {
+
+                val recordingId =
+                    info.outputData.getString(UploadWorker.KEY_OUTPUT_RECORDING_ID)
+
+                onNavigateToLoading(recordingId ?: "unknown")
+
+                delay(1000)
+                currentTest = null
+                testIndex = 0
+
+            } else if (info.state == WorkInfo.State.FAILED) {
+                currentTest = null
+                testIndex = 0
+                recordingId = null
+            }
         }
     }
-
 
     // --- Lógica de Estado de la UI ---
 
@@ -302,9 +320,10 @@ fun RecordScreen(
      * Variable calculada que proporciona un mensaje descriptivo para el usuario
      * basado en el estado de grabación local y el estado del worker de subida.
      */
-    val status = remember(isRecording, workInfo) {
+    val status = remember(isRecording, workInfo, isAudioStopped) {
         when {
-            isRecording -> "Grabando..."
+            isRecording && !isAudioStopped -> "Grabando..."
+            isRecording && isAudioStopped -> "Grabación pausada"
             workInfo == null -> "Listo para grabar"
             else -> when (workInfo!!.state) {
                 WorkInfo.State.ENQUEUED -> "En cola para subir..."
@@ -322,6 +341,27 @@ fun RecordScreen(
                 }
                 WorkInfo.State.CANCELLED -> "Subida cancelada"
             }
+        }
+    }
+
+    // Animación de parpadeo para el texto "Grabando..."
+    var blinkTarget by remember { mutableStateOf(1f) }
+    val blinkingAlpha by animateFloatAsState(
+        targetValue = blinkTarget,
+        animationSpec = tween(durationMillis = 800),
+        label = "blinking"
+    )
+    
+    LaunchedEffect(status) {
+        if (status == "Grabando...") {
+            while (true) {
+                blinkTarget = 0.3f
+                delay(800)
+                blinkTarget = 1f
+                delay(800)
+            }
+        } else {
+            blinkTarget = 1f
         }
     }
 
@@ -401,7 +441,7 @@ fun RecordScreen(
                             text = { Text("Ir a Pantalla de Carga") },
                             onClick = {
                                 showMenu = false
-                                onNavigateToLoading() // Navegación directa a carga
+                                onNavigateToLoading("0b7d6d1cb0cb") // ad621c97da0e
                             }
                         )
                         //
@@ -567,7 +607,7 @@ fun RecordScreen(
                 }
             }
 
-            // Tarjeta de Estado (Muestra el status)
+            // Tarjeta de Estado (Muestra el status)               
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -576,7 +616,7 @@ fun RecordScreen(
             ) {
                 Text(
                     text = status,
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(16.dp).alpha(blinkingAlpha),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyLarge
                 )

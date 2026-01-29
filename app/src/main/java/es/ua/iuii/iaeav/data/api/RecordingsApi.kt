@@ -6,7 +6,7 @@ import es.ua.iuii.iaeav.data.model.InitReq
 import es.ua.iuii.iaeav.data.model.InitRes
 import es.ua.iuii.iaeav.data.model.RecordingDto
 import es.ua.iuii.iaeav.data.model.RecordingsResponse
-import es.ua.iuii.iaeav.data.model.UploadTokenResponse
+import es.ua.iuii.iaeav.data.model.RecordingDetailDto
 import okhttp3.MultipartBody
 import retrofit2.http.*
 
@@ -74,5 +74,16 @@ interface RecordingsApi {
      */
     @GET("recordings")
     suspend fun getMyRecordings(): RecordingsResponse
+
+    // --- ENDPOINT DE POLLING ---
+    /**
+     * Solicita el detalle de una grabación específica por su ID.
+     *
+     * @return [RecordingDetailDto] Detalle de la grabación solicitada.
+     */
+    @GET("recordings/{recordingId}")
+    suspend fun getRecording(
+        @Path("recordingId") recordingId: String
+    ): RecordingDetailDto
 
 }

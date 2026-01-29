@@ -12,6 +12,8 @@ import es.ua.iuii.iaeav.ui.profile.ProfileScreen
 import es.ua.iuii.iaeav.ui.record.RecordScreen
 import es.ua.iuii.iaeav.ui.loading.LoadingScreen
 import es.ua.iuii.iaeav.ui.results.ResultScreen
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 
 /**
  * Define las rutas de navegación utilizadas en la aplicación.
@@ -25,6 +27,11 @@ object Routes {
     const val Result = "result"
     const val Profile = "profile"
     const val Info = "info"
+
+    const val RecordingIdArg = "recordingId"
+
+    fun loading(recordingId: String) = "$Loading/$recordingId"
+    fun result(recordingId: String) = "$Result/$recordingId"
 }
 
 /**
@@ -60,10 +67,8 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
 
         // --- Ruta Principal (Grabación) ---
         composable(Routes.Record) {
-            // RecordScreen contiene el control de navegación para las acciones de la barra superior.
             RecordScreen(
                 onLogout = {
-                    // Al cerrar sesión, navega a Login y borra toda la pila de navegación por seguridad
                     nav.navigate(Routes.Login) { popUpTo(0) }
                 },
                 onNavigateToProfile = {
@@ -72,8 +77,8 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
                 onNavigateToInfo = {
                     nav.navigate(Routes.Info)
                 },
-                onNavigateToLoading = {
-                    nav.navigate(Routes.Loading)
+                onNavigateToLoading = { recordingId ->
+                    nav.navigate(Routes.loading(recordingId))
                 }
             )
         }
@@ -84,7 +89,7 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
                 onBack = { nav.popBackStack() },
             )
         }
-
+/* 
         // --- Ruta de Carga ---
         composable(Routes.Loading) {
             LoadingScreen(
@@ -111,13 +116,63 @@ fun AppNavHost(nav: NavHostController, contentPadding: PaddingValues) {
                     nav.navigate(Routes.Info)
                 }
             )
-        }
+        }*/
 
         // --- Ruta de Perfil ---
         composable(Routes.Profile) {
             // ProfileScreen gestiona la información del usuario y el cambio de contraseña.
             ProfileScreen(
                 onBack = { nav.popBackStack() }
+            )
+        }
+
+        // --- Ruta de Carga con Parámetro ---
+        composable(
+            route = "${Routes.Loading}/{${Routes.RecordingIdArg}}",
+            arguments = listOf(
+                navArgument(Routes.RecordingIdArg) { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val recordingId =
+                backStackEntry.arguments?.getString(Routes.RecordingIdArg)
+                    ?: error("recordingId missing")
+
+            LoadingScreen(
+                recordingId = recordingId,
+                onNavigateToResult = {
+                    nav.navigate(Routes.result(recordingId))
+                },
+                onNavigateToLogin = {
+                    nav.navigate(Routes.Login) { popUpTo(0) }
+                },
+            )
+        }
+
+        // --- Ruta de Resultados con Parámetro ---
+        composable(
+            route = "${Routes.Result}/{${Routes.RecordingIdArg}}",
+            arguments = listOf(
+                navArgument(Routes.RecordingIdArg) { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val recordingId =
+                backStackEntry.arguments?.getString(Routes.RecordingIdArg)
+                    ?: error("recordingId missing")
+
+            ResultScreen(
+                recordingId = recordingId,
+                onBack = {
+                    nav.navigate(Routes.Record) { popUpTo(0) }
+                },
+                onLogout = {
+                    nav.navigate(Routes.Login) { popUpTo(0) }
+                },
+                onNavigateToProfile = {
+                    nav.navigate(Routes.Profile)
+                },
+                onNavigateToInfo = {
+                    nav.navigate(Routes.Info)
+                }
             )
         }
     }

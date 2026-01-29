@@ -1,37 +1,42 @@
 package es.ua.iuii.iaeav.ui.loading
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.BackHandler
-
-/**
- * # Pantalla de Carga (LoadingScreen)
- *
- * Composable que muestra una pantalla de carga con un indicador de progreso circular
- * mientras el modelo analiza la grabación de audio y genera un diagnóstico.
- * 
- * @param isLoading Estado de carga. Cuando es false, navega a la pantalla de resultados.
- * @param onNavigateToResult Callback para navegar a la pantalla de resultados cuando se complete la carga.
- */
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 
 @Composable
 fun LoadingScreen(
-    isLoading: Boolean = true,
-    onNavigateToResult: () -> Unit = {}
+    recordingId: String,
+    onNavigateToResult: (String) -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
-    // Bloquea el botón atrás mientras esté cargando
-    BackHandler(enabled = isLoading) { }
+    val vm: LoadingViewModel = viewModel(
+        factory = LoadingViewModelFactory(recordingId)
+    )
 
-    // Navegación automática cuando termina la carga
-    LaunchedEffect(isLoading) {
-        if (!isLoading) {
-            onNavigateToResult()
+    val state by vm.uiState.observeAsState(LoadingUiState.Loading)
+
+    // Bloquea botón atrás mientras está cargando o en progreso
+    BackHandler(
+        enabled = state is LoadingUiState.Loading ||
+                  state is LoadingUiState.InProgress
+    ) { }
+
+    // Navegación reactiva
+    LaunchedEffect(state) {
+        when (state) {
+            LoadingUiState.Completed -> onNavigateToResult(recordingId)
+            LoadingUiState.Unauthorized -> onNavigateToLogin()
+            else -> Unit
         }
     }
 
@@ -47,37 +52,101 @@ fun LoadingScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            CircularProgressIndicator(
-                modifier = Modifier.size(120.dp),
-                strokeWidth = 12.dp
-            )
+            when (state) {
 
-            Spacer(modifier = Modifier.height(32.dp))
+                is LoadingUiState.Loading,
+                is LoadingUiState.InProgress -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(120.dp),
+                        strokeWidth = 12.dp
+                    )
 
-            Text(
-                text = "Analizando grabación...",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
-            )
+                    Spacer(modifier = Modifier.height(32.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Analizando grabación...",
+                        style = MaterialTheme.typography.headlineMedium,
+                        textAlign = TextAlign.Center
+                    )
 
-            Text(
-                text = "Por favor espere mientras se analiza su grabación y se obtiene un diagnóstico",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary
-            )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        text = "Por favor espere mientras se analiza su grabación",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-            // 
-            Button(
-                onClick = onNavigateToResult
-            ) {
-                Text("Ver resultados")
+                is LoadingUiState.Failed -> {
+                    val msg = (state as LoadingUiState.Failed).message
+
+                    Text(
+                        text = "Error",
+                        style = MaterialTheme.typography.displayLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = msg,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Button(onClick = { vm.retry() }) {
+                        Text("Reintentar",
+                            style = MaterialTheme.typography.headlineSmall
+                            )
+                    }
+                }
+
+                LoadingUiState.Timeout -> {
+                    Text(
+                        text = "El análisis está tardando más de lo esperado",
+                        style = MaterialTheme.typography.headlineMedium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(onClick = { vm.retry() }) {
+                        Text(
+                            text = "Reintentar",
+                            style = MaterialTheme.typography.bodyMedium
+                            )
+                    }
+                }
+
+                LoadingUiState.Unauthorized -> {
+                    Text(
+                        text = "Sesión caducada",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                LoadingUiState.Completed -> {
+                    // No se muestra nada, navega automáticamente
+                }
             }
-            //
         }
+    }
+}
+
+// Factory para LoadingViewModel con parámetro
+class LoadingViewModelFactory(
+    private val recordingId: String
+) : ViewModelProvider.Factory {
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(LoadingViewModel::class.java)) {
+            return LoadingViewModel(recordingId) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

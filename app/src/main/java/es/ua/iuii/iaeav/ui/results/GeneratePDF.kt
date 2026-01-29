@@ -29,8 +29,8 @@ import java.util.*
  */
 fun generarPDFResultados(
     context: Context,
-    prediction: Boolean,
-    confidence: Float,
+    prediction: String,
+    confidence: String,
     transcription: String,
     explicability: String
 ) {
@@ -72,8 +72,8 @@ fun generarPDFResultados(
         document.add(fecha)
 
         // --- RESULTADO PRINCIPAL ---
-        val predictionText = if (prediction) "padece de Alzheimer" else "no padece de Alzheimer"
-        val confidencePercentage = (confidence * 100).toInt()
+        val predictionText = if (prediction == "positive") "padece de Alzheimer" else "no padece de Alzheimer"
+        val confidencePercentage = confidence
         
         val resultado = Paragraph()
             .add(Text("El modelo considera que el paciente ")
@@ -82,7 +82,7 @@ fun generarPDFResultados(
             .add(Text(predictionText)
                 .setFont(boldFont)
                 .setFontSize(14f)
-                .setFontColor(if (prediction) DeviceRgb(211, 47, 47) else DeviceRgb(56, 142, 60)))
+                .setFontColor(if (prediction == "positive") DeviceRgb(211, 47, 47) else DeviceRgb(56, 142, 60)))
             .add(Text(" con una confianza del ")
                 .setFont(regularFont)
                 .setFontSize(14f))
