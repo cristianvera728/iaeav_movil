@@ -114,6 +114,33 @@ class RecordViewModel(private val appContext: Context) : ViewModel() {
         return wav
     }
 
+    // Función de debug para encolar un archivo WAV existente
+    fun enqueueUploadFromWavFile(wav: File) {
+        require(wav.exists()) { "El archivo WAV no existe: ${wav.absolutePath}" }
+        require(wav.isFile) { "La ruta no es un archivo válido" }
+
+        _workInfo.value = null // Limpia estado previo
+
+        // --- Metadatos ---
+        val meta = parseWavMeta(wav)
+        val pseudonym = "android-import-${System.currentTimeMillis()}"
+        val taskId = "default"
+        val clientSnr = 12.5
+
+        val uniqueWorkName = UploadWorker.enqueue(
+            context = appContext,
+            filePath = wav.absolutePath,
+            pseudonym = pseudonym,
+            taskId = taskId,
+            sampleRate = meta.sampleRate,
+            channels = meta.channels,
+            lengthSeconds = meta.lengthSeconds,
+            clientSnr = clientSnr
+        )
+
+        observeWork(uniqueWorkName)
+    }
+
     /**
      * Comienza a observar el estado de una tarea de [WorkManager] específica.
      *

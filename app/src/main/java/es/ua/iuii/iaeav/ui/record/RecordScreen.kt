@@ -46,6 +46,13 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.alpha
 
+//---------- Debug de subir wav
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import java.io.File
+import java.io.InputStream
+//----------
+
 /**
  * # Pantalla de Grabación (RecordScreen)
  *
@@ -365,6 +372,33 @@ fun RecordScreen(
         }
     }
 
+    // Selector de archivo WAV (modo debug)
+    val pickWavLauncher = rememberLauncherForActivityResult(
+        contract = OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                // Copiar el WAV seleccionado a cache (WorkManager necesita File real)
+                val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+                val dir = File(context.cacheDir, "imports").apply { mkdirs() }
+                val outFile = File(dir, "import-${System.currentTimeMillis()}.wav")
+
+                inputStream.use { input ->
+                    outFile.outputStream().use { output ->
+                        input?.copyTo(output)
+                    }
+                }
+
+                // Encolar subida usando el mismo flujo normal
+                vm.enqueueUploadFromWavFile(outFile)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+
     // --- Lógica de Permisos ---
 
     /** Lanzador de actividad para solicitar el permiso RECORD_AUDIO. */
@@ -442,6 +476,19 @@ fun RecordScreen(
                             onClick = {
                                 showMenu = false
                                 onNavigateToLoading("0b7d6d1cb0cb") // ad621c97da0e
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("DEBUG: Subir audio WAV") },
+                            onClick = {
+                                showMenu = false
+                                pickWavLauncher.launch(
+                                    arrayOf(
+                                        "audio/wav",
+                                        "audio/x-wav",
+                                        "audio/*"
+                                    )
+                                )
                             }
                         )
                         //
