@@ -48,10 +48,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.alpha
 
 //---------- Debug de subir wav
+/* 
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import java.io.File
 import java.io.InputStream
+*/
 //----------
 
 /**
@@ -131,7 +133,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 0",
             description = "Buenos días",
-            durationMs = 500,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -143,7 +145,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 1",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -155,7 +157,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 2",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -168,7 +170,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 3",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -180,7 +182,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 4",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -192,7 +194,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 5",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -205,7 +207,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 6",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -218,7 +220,7 @@ fun RecordScreen(
         TestItem(
             title = "Feedback 7",
             description = "Muy bien",
-            durationMs = 1000,
+            durationMs = 1500,
             isFeedback = true
         ),
         TestItem(
@@ -409,7 +411,7 @@ fun RecordScreen(
     }
 
     // Selector de archivo WAV (modo debug)
-    val pickWavLauncher = rememberLauncherForActivityResult(
+    /*val pickWavLauncher = rememberLauncherForActivityResult(
         contract = OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
@@ -432,7 +434,7 @@ fun RecordScreen(
                 e.printStackTrace()
             }
         }
-    }
+    }*/
 
 
     // --- Lógica de Permisos ---
@@ -514,19 +516,19 @@ fun RecordScreen(
                                 onNavigateToLoading("0b7d6d1cb0cb") // ad621c97da0e
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("DEBUG: Subir audio WAV") },
-                            onClick = {
-                                showMenu = false
-                                pickWavLauncher.launch(
-                                    arrayOf(
-                                        "audio/wav",
-                                        "audio/x-wav",
-                                        "audio/*"
-                                    )
-                                )
-                            }
-                        )
+                        //DropdownMenuItem(
+                        //    text = { Text("DEBUG: Subir audio WAV") },
+                          //  onClick = {
+                            //    showMenu = false
+                              //  pickWavLauncher.launch(
+                                //    arrayOf(
+                                  //      "audio/wav",
+                                    //    "audio/x-wav",
+                                      //  "audio/*"
+                                 //   )
+                            //    )
+                         //   }
+                      //  )
                         //
                     }
                 }
@@ -673,7 +675,7 @@ fun RecordScreen(
                                         Image(
                                             painter = painterResource(id = images[imageIndex]),
                                             contentDescription = "${test.title} - Imagen ${imageIndex + 1}",
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Fit
                                         )
                                     }
